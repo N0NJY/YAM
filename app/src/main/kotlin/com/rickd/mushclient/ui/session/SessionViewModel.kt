@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 data class SessionUiState(
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     val lines: List<AnnotatedString> = emptyList(),
+    val history: List<String> = emptyList(),
     val errorMessage: String? = null,
 )
 

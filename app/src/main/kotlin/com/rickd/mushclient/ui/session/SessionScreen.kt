@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,6 +85,10 @@ fun SessionScreen(
             }
         }
 
+        if (uiState.history.isNotEmpty()) {
+            HistoryRow(history = uiState.history, onPick = { inputText = it })
+        }
+
         InputBar(
             value = inputText,
             onValueChange = { inputText = it },
@@ -92,6 +98,17 @@ fun SessionScreen(
                 inputText = ""
             },
         )
+    }
+}
+
+@Composable
+private fun HistoryRow(history: List<String>, onPick: (String) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        items(history) { command ->
+            // Tapping fills the input rather than sending immediately — a MUSH command
+            // (e.g. a kill/drop) shouldn't fire again from a single accidental tap.
+            SuggestionChip(onClick = { onPick(command) }, label = { Text(command) })
+        }
     }
 }
 

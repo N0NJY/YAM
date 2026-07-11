@@ -83,7 +83,14 @@ class MudConnectionService : LifecycleService() {
 
     fun send(text: String) {
         if (text.isEmpty()) return
-        _uiState.update { it.copy(lines = it.lines + AnnotatedString("> $text")) }
+        _uiState.update {
+            it.copy(
+                lines = it.lines + AnnotatedString("> $text"),
+                // Most-recent-first, re-sending a repeated command moves it to the front
+                // instead of listing it twice.
+                history = (listOf(text) + it.history.filterNot { cmd -> cmd == text }).take(MAX_HISTORY),
+            )
+        }
         lifecycleScope.launch {
             telnetClient.send(text)
         }
@@ -161,6 +168,7 @@ class MudConnectionService : LifecycleService() {
     companion object {
         private const val CHANNEL_ID = "mud_session"
         private const val NOTIFICATION_ID = 1
+        private const val MAX_HISTORY = 20
         const val EXTRA_HOST = "host"
         const val EXTRA_PORT = "port"
     }

@@ -74,6 +74,7 @@ fun SessionScreen(viewModel: SessionViewModel = viewModel()) {
                 .fillMaxWidth(),
         ) {
             items(uiState.lines) { line ->
+                // TerminalGreen is the default; ANSI SpanStyles in `line` override it per-run.
                 Text(text = line, fontFamily = FontFamily.Monospace, color = TerminalGreen)
             }
         }

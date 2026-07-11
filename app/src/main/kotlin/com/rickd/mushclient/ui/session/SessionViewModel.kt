@@ -1,7 +1,9 @@
 package com.rickd.mushclient.ui.session
 
+import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rickd.mushclient.ansi.AnsiParser
 import com.rickd.mushclient.telnet.ConnectionState
 import com.rickd.mushclient.telnet.TelnetClient
 import com.rickd.mushclient.telnet.TelnetEvent
@@ -13,7 +15,7 @@ import kotlinx.coroutines.launch
 
 data class SessionUiState(
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
-    val lines: List<String> = emptyList(),
+    val lines: List<AnnotatedString> = emptyList(),
     val errorMessage: String? = null,
 )
 
@@ -26,6 +28,7 @@ class SessionViewModel : ViewModel() {
 
     private val telnetClient = TelnetClient(viewModelScope)
     private val pendingLine = StringBuilder()
+    private val ansiParser = AnsiParser()
 
     private val _uiState = MutableStateFlow(SessionUiState())
     val uiState: StateFlow<SessionUiState> = _uiState.asStateFlow()
@@ -50,7 +53,7 @@ class SessionViewModel : ViewModel() {
 
     fun send(text: String) {
         if (text.isEmpty()) return
-        _uiState.update { it.copy(lines = it.lines + "> $text") }
+        _uiState.update { it.copy(lines = it.lines + AnnotatedString("> $text")) }
         viewModelScope.launch {
             telnetClient.send(text)
         }
@@ -72,7 +75,8 @@ class SessionViewModel : ViewModel() {
         pendingLine.append(parts.last())
         val completeLines = parts.dropLast(1)
         if (completeLines.isNotEmpty()) {
-            _uiState.update { it.copy(lines = it.lines + completeLines) }
+            val rendered = completeLines.map(ansiParser::parseLine)
+            _uiState.update { it.copy(lines = it.lines + rendered) }
         }
     }
 

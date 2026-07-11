@@ -1,16 +1,21 @@
 package com.rickd.mushclient.ui.session
 
+import android.app.Application
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.IBinder
 import androidx.compose.ui.text.AnnotatedString
-import androidx.lifecycle.ViewModel
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.rickd.mushclient.ansi.AnsiParser
+import com.rickd.mushclient.service.MudConnectionService
 import com.rickd.mushclient.telnet.ConnectionState
-import com.rickd.mushclient.telnet.TelnetClient
-import com.rickd.mushclient.telnet.TelnetEvent
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class SessionUiState(
@@ -20,67 +25,64 @@ data class SessionUiState(
 )
 
 /**
- * Turns the byte/event-level [TelnetClient] into scrollback the UI can render: buffers
- * partial lines across chunks (servers don't align text on line boundaries) and echoes
- * sent commands into the same scrollback, MUD-client style.
+ * Thin adapter between the UI and [MudConnectionService], which owns the actual telnet
+ * connection so it survives this ViewModel (and the Activity) being torn down. Binds to
+ * the service on creation and mirrors its state; [disconnect]/[send] forward to the bound
+ * service, while [connect] starts the service as a foreground service (not just a bind) —
+ * that's what keeps the session alive after the UI unbinds.
  */
-class SessionViewModel : ViewModel() {
-
-    private val telnetClient = TelnetClient(viewModelScope)
-    private val pendingLine = StringBuilder()
-    private val ansiParser = AnsiParser()
+class SessionViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(SessionUiState())
     val uiState: StateFlow<SessionUiState> = _uiState.asStateFlow()
 
-    init {
-        viewModelScope.launch {
-            telnetClient.events.collect(::handleEvent)
+    private var service: MudConnectionService? = null
+    private var mirrorJob: Job? = null
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, binder: IBinder) {
+            val bound = (binder as MudConnectionService.LocalBinder).getService()
+            service = bound
+            mirrorJob = viewModelScope.launch {
+                bound.uiState.collect { _uiState.value = it }
+            }
         }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            service = null
+            mirrorJob?.cancel()
+        }
+    }
+
+    init {
+        val context = getApplication<Application>()
+        context.bindService(
+            Intent(context, MudConnectionService::class.java),
+            connection,
+            Context.BIND_AUTO_CREATE,
+        )
     }
 
     fun connect(host: String, port: Int) {
         if (host.isBlank()) return
-        _uiState.update { it.copy(errorMessage = null) }
-        viewModelScope.launch {
-            telnetClient.connect(host, port)
-        }
+        val context = getApplication<Application>()
+        val intent = Intent(context, MudConnectionService::class.java)
+            .putExtra(MudConnectionService.EXTRA_HOST, host)
+            .putExtra(MudConnectionService.EXTRA_PORT, port)
+        ContextCompat.startForegroundService(context, intent)
     }
 
     fun disconnect() {
-        telnetClient.disconnect()
+        service?.disconnect()
     }
 
     fun send(text: String) {
-        if (text.isEmpty()) return
-        _uiState.update { it.copy(lines = it.lines + AnnotatedString("> $text")) }
-        viewModelScope.launch {
-            telnetClient.send(text)
-        }
-    }
-
-    private fun handleEvent(event: TelnetEvent) {
-        when (event) {
-            is TelnetEvent.Text -> appendText(event.chunk)
-            is TelnetEvent.StateChanged -> _uiState.update { it.copy(connectionState = event.state) }
-            is TelnetEvent.Error -> _uiState.update { it.copy(errorMessage = event.message) }
-            is TelnetEvent.Subnegotiation -> Unit // not interpreted yet (GMCP/MSDP land later)
-        }
-    }
-
-    private fun appendText(chunk: String) {
-        pendingLine.append(chunk)
-        val parts = pendingLine.toString().replace("\r\n", "\n").replace("\r", "\n").split("\n")
-        pendingLine.clear()
-        pendingLine.append(parts.last())
-        val completeLines = parts.dropLast(1)
-        if (completeLines.isNotEmpty()) {
-            val rendered = completeLines.map(ansiParser::parseLine)
-            _uiState.update { it.copy(lines = it.lines + rendered) }
-        }
+        service?.send(text)
     }
 
     override fun onCleared() {
-        telnetClient.disconnect()
+        // Deliberately don't disconnect here: unbinding must not kill a live session,
+        // that's the whole point of the service being separately "started".
+        getApplication<Application>().unbindService(connection)
     }
 }

@@ -1,0 +1,159 @@
+package com.rickd.mushclient.ui.session
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rickd.mushclient.telnet.ConnectionState
+import com.rickd.mushclient.ui.theme.TerminalGreen
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+
+@Composable
+fun SessionScreen(viewModel: SessionViewModel = viewModel()) {
+    val uiState by viewModel.uiState.collectAsState()
+    var host by remember { mutableStateOf("Silvren.com") }
+    var port by remember { mutableStateOf("4444") }
+    var inputText by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(uiState.lines.size) {
+        if (uiState.lines.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.lines.size - 1)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ConnectionBar(
+            host = host,
+            onHostChange = { host = it },
+            port = port,
+            onPortChange = { port = it },
+            connectionState = uiState.connectionState,
+            onConnect = { viewModel.connect(host, port.toIntOrNull() ?: return@ConnectionBar) },
+            onDisconnect = viewModel::disconnect,
+        )
+
+        uiState.errorMessage?.let { message ->
+            Text(text = message, color = MaterialTheme.colorScheme.error)
+        }
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) {
+            items(uiState.lines) { line ->
+                Text(text = line, fontFamily = FontFamily.Monospace, color = TerminalGreen)
+            }
+        }
+
+        InputBar(
+            value = inputText,
+            onValueChange = { inputText = it },
+            enabled = uiState.connectionState == ConnectionState.CONNECTED,
+            onSend = {
+                viewModel.send(inputText)
+                inputText = ""
+            },
+        )
+    }
+}
+
+@Composable
+private fun ConnectionBar(
+    host: String,
+    onHostChange: (String) -> Unit,
+    port: String,
+    onPortChange: (String) -> Unit,
+    connectionState: ConnectionState,
+    onConnect: () -> Unit,
+    onDisconnect: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedTextField(
+                value = host,
+                onValueChange = onHostChange,
+                label = { Text("Host") },
+                singleLine = true,
+                enabled = connectionState != ConnectionState.CONNECTED,
+                modifier = Modifier.weight(2f),
+            )
+            OutlinedTextField(
+                value = port,
+                onValueChange = onPortChange,
+                label = { Text("Port") },
+                singleLine = true,
+                enabled = connectionState != ConnectionState.CONNECTED,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f),
+            )
+            when (connectionState) {
+                ConnectionState.CONNECTED -> Button(onClick = onDisconnect) { Text("Disconnect") }
+                ConnectionState.CONNECTING -> Button(onClick = {}, enabled = false) { Text("Connecting…") }
+                ConnectionState.DISCONNECTED -> Button(onClick = onConnect) { Text("Connect") }
+            }
+        }
+        Text(text = "Status: ${connectionState.name}")
+    }
+}
+
+@Composable
+private fun InputBar(
+    value: String,
+    onValueChange: (String) -> Unit,
+    enabled: Boolean,
+    onSend: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = enabled,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { if (value.isNotEmpty()) onSend() }),
+            modifier = Modifier.weight(1f),
+        )
+        Button(onClick = onSend, enabled = enabled && value.isNotEmpty()) {
+            Text("Send")
+        }
+    }
+}

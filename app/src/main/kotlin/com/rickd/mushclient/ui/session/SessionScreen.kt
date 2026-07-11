@@ -33,10 +33,14 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 
 @Composable
-fun SessionScreen(viewModel: SessionViewModel = viewModel()) {
+fun SessionScreen(
+    initialHost: String? = null,
+    initialPort: String? = null,
+    viewModel: SessionViewModel = viewModel(),
+) {
     val uiState by viewModel.uiState.collectAsState()
-    var host by remember { mutableStateOf("Silvren.com") }
-    var port by remember { mutableStateOf("4444") }
+    var host by remember { mutableStateOf(initialHost ?: "") }
+    var port by remember { mutableStateOf(initialPort ?: "") }
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 

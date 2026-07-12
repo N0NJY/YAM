@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 private val DarkColors = darkColorScheme(
     primary = TerminalGreen,
     background = TerminalBackground,
+    surface = TerminalBackground,
 )
 
 private val LightColors = lightColorScheme(

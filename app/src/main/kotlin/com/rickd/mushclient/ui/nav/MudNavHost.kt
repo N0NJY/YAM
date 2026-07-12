@@ -9,9 +9,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.rickd.mushclient.ui.profiles.ProfileListScreen
 import com.rickd.mushclient.ui.session.SessionScreen
+import com.rickd.mushclient.ui.settings.SettingsScreen
 
 private const val ROUTE_PROFILES = "profiles"
 private const val ROUTE_SESSION = "session?host={host}&port={port}"
+private const val ROUTE_SETTINGS = "settings"
 
 @Composable
 fun MudNavHost() {
@@ -23,7 +25,11 @@ fun MudNavHost() {
                     navController.navigate("session?host=${Uri.encode(profile.host)}&port=${profile.port}")
                 },
                 onConnectManually = { navController.navigate("session") },
+                onOpenSettings = { navController.navigate(ROUTE_SETTINGS) },
             )
+        }
+        composable(ROUTE_SETTINGS) {
+            SettingsScreen(onBack = { navController.popBackStack() })
         }
         composable(
             route = ROUTE_SESSION,

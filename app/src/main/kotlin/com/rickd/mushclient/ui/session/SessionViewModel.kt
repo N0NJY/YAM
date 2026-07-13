@@ -77,7 +77,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         service?.disconnect()
     }
 
-    fun send(text: String, echoAs: String = text) {
+    fun send(text: String, echoAs: String? = text) {
         service?.send(text, echoAs)
     }
 

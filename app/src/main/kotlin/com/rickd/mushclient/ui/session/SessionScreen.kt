@@ -52,8 +52,8 @@ fun SessionScreen(
     // A character was picked (not just a world): dial immediately and, once connected, send
     // its login line once. Picking a world alone never auto-connects — only an explicit
     // character selection implies "log me in as this specific character now". The password
-    // is only ever sent over the wire — echoAs keeps it out of the visible scrollback and
-    // the tappable command history.
+    // is only ever sent over the wire — echoAs = null means the whole "connect ..." line
+    // (not even a redacted stand-in) ever renders in the scrollback or command history.
     LaunchedEffect(Unit) {
         if (autoLoginCharacterName != null) {
             viewModel.connect(host, port.toIntOrNull() ?: return@LaunchedEffect)
@@ -64,7 +64,7 @@ fun SessionScreen(
             autoLoginPending = false
             viewModel.send(
                 text = "connect $autoLoginCharacterName $autoLoginCharacterPassword",
-                echoAs = "connect $autoLoginCharacterName ********",
+                echoAs = null,
             )
         }
     }

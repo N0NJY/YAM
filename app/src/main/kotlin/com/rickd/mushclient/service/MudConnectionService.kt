@@ -81,14 +81,19 @@ class MudConnectionService : LifecycleService() {
         telnetClient.disconnect()
     }
 
-    fun send(text: String) {
+    /**
+     * [echoAs] lets a caller show a redacted stand-in (e.g. "connect god ********") in the
+     * scrollback/history instead of [text] itself — used for character auto-login, where
+     * [text] carries a real password that must never land in the visible, tappable history.
+     */
+    fun send(text: String, echoAs: String = text) {
         if (text.isEmpty()) return
         _uiState.update {
             it.copy(
-                lines = it.lines + AnnotatedString("> $text"),
+                lines = it.lines + AnnotatedString("> $echoAs"),
                 // Most-recent-first, re-sending a repeated command moves it to the front
                 // instead of listing it twice.
-                history = (listOf(text) + it.history.filterNot { cmd -> cmd == text }).take(MAX_HISTORY),
+                history = (listOf(echoAs) + it.history.filterNot { cmd -> cmd == echoAs }).take(MAX_HISTORY),
             )
         }
         lifecycleScope.launch {

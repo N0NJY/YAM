@@ -1,4 +1,4 @@
-package com.rickd.mushclient.ui.profiles
+package com.rickd.mushclient.ui.worlds
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,17 +31,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.rickd.mushclient.data.ConnectionProfile
+import com.rickd.mushclient.data.World
 
 @Composable
-fun ProfileListScreen(
-    onConnect: (ConnectionProfile) -> Unit,
+fun WorldListScreen(
+    onSelectWorld: (World) -> Unit,
     onConnectManually: () -> Unit,
     onOpenSettings: () -> Unit,
-    viewModel: ProfileListViewModel = viewModel(),
+    viewModel: WorldListViewModel = viewModel(),
 ) {
-    val profiles by viewModel.profiles.collectAsState()
-    var editing by remember { mutableStateOf<ConnectionProfile?>(null) }
+    val worlds by viewModel.worlds.collectAsState()
+    var editing by remember { mutableStateOf<World?>(null) }
     var showEditor by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -50,22 +50,22 @@ fun ProfileListScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = "Profiles", style = MaterialTheme.typography.titleLarge)
+            Text(text = "Worlds", style = MaterialTheme.typography.titleLarge)
             IconButton(onClick = onOpenSettings) {
                 Icon(Icons.Default.MoreVert, contentDescription = "Settings")
             }
         }
 
         LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            items(profiles, key = { it.id }) { profile ->
-                ProfileRow(
-                    profile = profile,
-                    onClick = { onConnect(profile) },
+            items(worlds, key = { it.id }) { world ->
+                WorldRow(
+                    world = world,
+                    onClick = { onSelectWorld(world) },
                     onEdit = {
-                        editing = profile
+                        editing = world
                         showEditor = true
                     },
-                    onDelete = { viewModel.delete(profile) },
+                    onDelete = { viewModel.delete(world) },
                 )
             }
         }
@@ -77,7 +77,7 @@ fun ProfileListScreen(
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("New Profile")
+            Text("New World")
         }
         TextButton(onClick = onConnectManually, modifier = Modifier.fillMaxWidth()) {
             Text("Connect without saving")
@@ -85,7 +85,7 @@ fun ProfileListScreen(
     }
 
     if (showEditor) {
-        ProfileEditorDialog(
+        WorldEditorDialog(
             initial = editing,
             onDismiss = { showEditor = false },
             onSave = { name, host, port ->
@@ -97,8 +97,8 @@ fun ProfileListScreen(
 }
 
 @Composable
-private fun ProfileRow(
-    profile: ConnectionProfile,
+private fun WorldRow(
+    world: World,
     onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -111,9 +111,9 @@ private fun ProfileRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = profile.name, style = MaterialTheme.typography.bodyLarge)
+            Text(text = world.name, style = MaterialTheme.typography.bodyLarge)
             Text(
-                text = "${profile.host}:${profile.port}",
+                text = "${world.host}:${world.port}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -124,8 +124,8 @@ private fun ProfileRow(
 }
 
 @Composable
-private fun ProfileEditorDialog(
-    initial: ConnectionProfile?,
+private fun WorldEditorDialog(
+    initial: World?,
     onDismiss: () -> Unit,
     onSave: (name: String, host: String, port: Int) -> Unit,
 ) {
@@ -138,7 +138,7 @@ private fun ProfileEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initial == null) "New Profile" else "Edit Profile") },
+        title = { Text(if (initial == null) "New World" else "Edit World") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, singleLine = true)

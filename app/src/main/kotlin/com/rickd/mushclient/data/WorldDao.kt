@@ -8,16 +8,19 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface ProfileDao {
+interface WorldDao {
     @Query("SELECT * FROM connection_profiles ORDER BY name COLLATE NOCASE")
-    fun observeAll(): Flow<List<ConnectionProfile>>
+    fun observeAll(): Flow<List<World>>
+
+    @Query("SELECT * FROM connection_profiles WHERE id = :id")
+    suspend fun getById(id: Long): World?
 
     @Insert
-    suspend fun insert(profile: ConnectionProfile): Long
+    suspend fun insert(world: World): Long
 
     @Update
-    suspend fun update(profile: ConnectionProfile)
+    suspend fun update(world: World)
 
     @Delete
-    suspend fun delete(profile: ConnectionProfile)
+    suspend fun delete(world: World)
 }

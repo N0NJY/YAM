@@ -38,13 +38,36 @@ import androidx.compose.foundation.text.KeyboardOptions
 fun SessionScreen(
     initialHost: String? = null,
     initialPort: String? = null,
+    autoLoginCharacterName: String? = null,
+    autoLoginCharacterPassword: String? = null,
     viewModel: SessionViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var host by remember { mutableStateOf(initialHost ?: "") }
     var port by remember { mutableStateOf(initialPort ?: "") }
     var inputText by remember { mutableStateOf("") }
+    var autoLoginPending by remember { mutableStateOf(autoLoginCharacterName != null) }
     val listState = rememberLazyListState()
+
+    // A character was picked (not just a world): dial immediately and, once connected, send
+    // its login line once. Picking a world alone never auto-connects — only an explicit
+    // character selection implies "log me in as this specific character now". The password
+    // is only ever sent over the wire — echoAs keeps it out of the visible scrollback and
+    // the tappable command history.
+    LaunchedEffect(Unit) {
+        if (autoLoginCharacterName != null) {
+            viewModel.connect(host, port.toIntOrNull() ?: return@LaunchedEffect)
+        }
+    }
+    LaunchedEffect(uiState.connectionState) {
+        if (autoLoginPending && uiState.connectionState == ConnectionState.CONNECTED) {
+            autoLoginPending = false
+            viewModel.send(
+                text = "connect $autoLoginCharacterName $autoLoginCharacterPassword",
+                echoAs = "connect $autoLoginCharacterName ********",
+            )
+        }
+    }
 
     LaunchedEffect(uiState.lines.size) {
         if (uiState.lines.isNotEmpty()) {

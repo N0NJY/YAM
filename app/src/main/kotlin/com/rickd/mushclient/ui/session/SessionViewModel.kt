@@ -77,8 +77,8 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         service?.disconnect()
     }
 
-    fun send(text: String) {
-        service?.send(text)
+    fun send(text: String, echoAs: String = text) {
+        service?.send(text, echoAs)
     }
 
     override fun onCleared() {

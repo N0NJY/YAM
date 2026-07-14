@@ -27,6 +27,7 @@ import com.rickd.mushclient.data.ThemeMode
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenWorlds: () -> Unit,
+    onOpenPlayers: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
@@ -55,24 +56,38 @@ fun SettingsScreen(
         }
 
         Text("Manage", style = MaterialTheme.typography.titleMedium)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpenWorlds)
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text("Worlds & Characters", style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    text = "Add, edit, or delete saved worlds and their characters",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
+        ManageRow(
+            title = "Worlds & Characters",
+            subtitle = "Add, edit, or delete saved worlds and their characters",
+            onClick = onOpenWorlds,
+        )
+        ManageRow(
+            title = "Players",
+            subtitle = "Every saved name and password, across all worlds, in one list",
+            onClick = onOpenPlayers,
+        )
+    }
+}
+
+@Composable
+private fun ManageRow(title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
+        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
     }
 }
 

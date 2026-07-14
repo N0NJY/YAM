@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -23,6 +26,7 @@ import com.rickd.mushclient.data.ThemeMode
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenWorlds: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
@@ -48,6 +52,26 @@ fun SettingsScreen(
                 RadioButton(selected = mode == themeMode, onClick = { viewModel.setThemeMode(mode) })
                 Text(mode.label())
             }
+        }
+
+        Text("Manage", style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpenWorlds)
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text("Worlds & Characters", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = "Add, edit, or delete saved worlds and their characters",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
         }
     }
 }

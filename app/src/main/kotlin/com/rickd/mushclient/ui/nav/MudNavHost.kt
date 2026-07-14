@@ -46,7 +46,15 @@ fun MudNavHost() {
             )
         }
         composable(ROUTE_SETTINGS) {
-            SettingsScreen(onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenWorlds = {
+                    navController.navigate(ROUTE_WORLDS) {
+                        popUpTo(ROUTE_WORLDS) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
         composable(
             route = ROUTE_SESSION,

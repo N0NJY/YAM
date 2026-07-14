@@ -85,7 +85,7 @@ class MudConnectionService : LifecycleService() {
      * [echoAs] overrides what's shown in the scrollback/history in place of [text] itself;
      * pass null to suppress the echo (and history entry) entirely. Used for character
      * auto-login, where [text] carries a real password that must never render on screen or
-     * land in the tappable history — not even redacted, the whole "connect ..." line is
+     * land in the recallable history — not even redacted, the whole "connect ..." line is
      * skipped and only the server's own response (e.g. a "has connected" line) shows up.
      */
     fun send(text: String, echoAs: String? = text) {

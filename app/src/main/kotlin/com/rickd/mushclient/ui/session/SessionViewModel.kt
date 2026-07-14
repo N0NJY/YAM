@@ -77,7 +77,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         service?.disconnect()
     }
 
-    fun send(text: String, echoAs: String? = text) {
+    fun send(text: String, echoAs: String? = redactIfLoginCommand(text)) {
         service?.send(text, echoAs)
     }
 
@@ -86,4 +86,15 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         // that's the whole point of the service being separately "started".
         getApplication<Application>().unbindService(connection)
     }
+}
+
+// A player typing "connect <name> <password>" (or "co"/"create"/"cr") straight into the
+// input bar isn't going through the auto-login path's echoAs=null, so without this the raw
+// password would otherwise land in the scrollback and in the tappable history row.
+private val LOGIN_COMMAND_REGEX = Regex("""(?is)^\s*(connect|co|create|cr)\s+(\S+)\s+\S.*$""")
+
+private fun redactIfLoginCommand(text: String): String {
+    val match = LOGIN_COMMAND_REGEX.matchEntire(text) ?: return text
+    val (verb, name) = match.destructured
+    return "$verb $name ********"
 }

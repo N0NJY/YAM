@@ -8,13 +8,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
@@ -48,6 +52,11 @@ fun SessionScreen(
     var inputText by remember { mutableStateOf("") }
     var autoLoginPending by remember { mutableStateOf(autoLoginCharacterName != null) }
     val listState = rememberLazyListState()
+
+    // -1 means "not browsing history, this is your own draft". 0 is the most recent past
+    // command, 1 the one before that, etc. — mirrors shell up/down-arrow history recall.
+    var historyIndex by remember { mutableStateOf(-1) }
+    var draftBeforeHistory by remember { mutableStateOf("") }
 
     // A character was picked (not just a world): dial immediately and, once connected, send
     // its login line once. Picking a world alone never auto-connects — only an explicit
@@ -108,30 +117,32 @@ fun SessionScreen(
             }
         }
 
-        if (uiState.history.isNotEmpty()) {
-            HistoryRow(history = uiState.history, onPick = { inputText = it })
-        }
-
         InputBar(
             value = inputText,
             onValueChange = { inputText = it },
             enabled = uiState.connectionState == ConnectionState.CONNECTED,
+            canNavigateOlder = uiState.history.isNotEmpty() && historyIndex < uiState.history.lastIndex,
+            canNavigateNewer = historyIndex >= 0,
+            onNavigateOlder = {
+                if (historyIndex == -1) draftBeforeHistory = inputText
+                historyIndex = (historyIndex + 1).coerceAtMost(uiState.history.lastIndex)
+                inputText = uiState.history[historyIndex]
+            },
+            onNavigateNewer = {
+                if (historyIndex > 0) {
+                    historyIndex -= 1
+                    inputText = uiState.history[historyIndex]
+                } else if (historyIndex == 0) {
+                    historyIndex = -1
+                    inputText = draftBeforeHistory
+                }
+            },
             onSend = {
                 viewModel.send(inputText)
                 inputText = ""
+                historyIndex = -1
             },
         )
-    }
-}
-
-@Composable
-private fun HistoryRow(history: List<String>, onPick: (String) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        items(history) { command ->
-            // Tapping fills the input rather than sending immediately — a MUSH command
-            // (e.g. a kill/drop) shouldn't fire again from a single accidental tap.
-            SuggestionChip(onClick = { onPick(command) }, label = { Text(command) })
-        }
     }
 }
 
@@ -182,12 +193,25 @@ private fun InputBar(
     value: String,
     onValueChange: (String) -> Unit,
     enabled: Boolean,
+    canNavigateOlder: Boolean,
+    canNavigateNewer: Boolean,
+    onNavigateOlder: () -> Unit,
+    onNavigateNewer: () -> Unit,
     onSend: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        // Recalls previously sent commands into the input, like a shell's up/down history —
+        // independent of `enabled` so you can line up your next command while reconnecting.
+        IconButton(onClick = onNavigateOlder, enabled = canNavigateOlder) {
+            Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Previous command")
+        }
+        IconButton(onClick = onNavigateNewer, enabled = canNavigateNewer) {
+            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Next command")
+        }
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,

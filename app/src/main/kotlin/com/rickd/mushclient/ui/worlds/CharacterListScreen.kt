@@ -33,7 +33,7 @@ import com.rickd.mushclient.data.MushCharacter
 @Composable
 fun CharacterListScreen(
     worldId: Long,
-    onConnect: (host: String, port: Int, characterName: String?, characterPassword: String?) -> Unit,
+    onConnect: (host: String, port: Int, characterName: String?, characterPassword: String?, worldId: Long, worldName: String) -> Unit,
     onBack: () -> Unit,
 ) {
     val application = LocalContext.current.applicationContext as Application
@@ -65,7 +65,7 @@ fun CharacterListScreen(
                     character = character,
                     onClick = {
                         val current = world ?: return@CharacterRow
-                        onConnect(current.host, current.port, character.name, character.password)
+                        onConnect(current.host, current.port, character.name, character.password, current.id, current.name)
                     },
                     onEdit = {
                         editing = character
@@ -88,7 +88,7 @@ fun CharacterListScreen(
         TextButton(
             onClick = {
                 val current = world ?: return@TextButton
-                onConnect(current.host, current.port, null, null)
+                onConnect(current.host, current.port, null, null, current.id, current.name)
             },
             modifier = Modifier.fillMaxWidth(),
         ) {

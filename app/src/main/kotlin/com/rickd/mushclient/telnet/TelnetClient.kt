@@ -63,9 +63,13 @@ class TelnetClient(private val scope: CoroutineScope) {
                             _events.emit(TelnetEvent.Text(String(raw.bytes, charset)))
                         }
                         is IacProcessor.RawEvent.Negotiation -> {
+                            _events.emit(TelnetEvent.Debug(describeNegotiation(raw.command, raw.option)))
                             respondToNegotiation(raw.command, raw.option)
                         }
                         is IacProcessor.RawEvent.Subnegotiation -> {
+                            _events.emit(
+                                TelnetEvent.Debug("SB ${optionName(raw.option)} (${raw.data.size} bytes)"),
+                            )
                             _events.emit(TelnetEvent.Subnegotiation(raw.option, raw.data))
                         }
                     }
@@ -77,6 +81,22 @@ class TelnetClient(private val scope: CoroutineScope) {
             _events.emit(TelnetEvent.StateChanged(ConnectionState.DISCONNECTED))
             closeQuietly()
         }
+    }
+
+    private fun describeNegotiation(command: Int, option: Int): String {
+        val commandName = when (command) {
+            IacProcessor.WILL -> "WILL"
+            IacProcessor.WONT -> "WONT"
+            IacProcessor.DO -> "DO"
+            IacProcessor.DONT -> "DONT"
+            else -> "CMD($command)"
+        }
+        return "$commandName ${optionName(option)}"
+    }
+
+    private fun optionName(option: Int): String {
+        val name = TELNET_OPTION_NAMES[option] ?: return option.toString()
+        return "$option ($name)"
     }
 
     private fun respondToNegotiation(command: Int, option: Int) {
@@ -120,5 +140,26 @@ class TelnetClient(private val scope: CoroutineScope) {
 
     companion object {
         private const val CONNECT_TIMEOUT_MS = 10_000
+
+        // Just the ones a MUD/MUSH server is likely to actually offer — purely cosmetic,
+        // for /debug output; unrecognized options still show fine as a bare number.
+        private val TELNET_OPTION_NAMES = mapOf(
+            1 to "ECHO",
+            3 to "SGA",
+            5 to "STATUS",
+            24 to "TTYPE",
+            25 to "EOR",
+            31 to "NAWS",
+            34 to "LINEMODE",
+            39 to "NEW-ENVIRON",
+            42 to "CHARSET",
+            70 to "MSSP",
+            85 to "COMPRESS",
+            86 to "MCCP2",
+            90 to "MSP",
+            91 to "MXP",
+            93 to "ZMP",
+            201 to "GMCP",
+        )
     }
 }

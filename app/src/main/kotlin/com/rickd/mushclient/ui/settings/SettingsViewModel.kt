@@ -10,6 +10,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val prefs = AppPreferences.get(application)
     val themeMode: StateFlow<ThemeMode> = prefs.themeMode
+    val autoReconnect: StateFlow<Boolean> = prefs.autoReconnect
 
     fun setThemeMode(mode: ThemeMode) = prefs.setThemeMode(mode)
+    fun setAutoReconnect(enabled: Boolean) = prefs.setAutoReconnect(enabled)
 }

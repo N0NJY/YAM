@@ -20,22 +20,47 @@ import kotlinx.coroutines.launch
 
 data class SessionUiState(
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
+    // The tab's own last-dialed (or pre-filled) address — lets the UI show/edit it per-tab
+    // without a separate round trip, since typing into the fields can't go through the Service.
+    val host: String = "",
+    val port: String = "",
     val lines: List<AnnotatedString> = emptyList(),
     val history: List<String> = emptyList(),
     val errorMessage: String? = null,
+    // A Trigger's "Input" action landing text in the input box. `pendingInputNonce` increments
+    // on every fire (even a repeat of the same text) so the UI's LaunchedEffect always re-runs.
+    val pendingInputText: String? = null,
+    val pendingInputNonce: Long = 0,
+)
+
+/** Cheap per-tab summary for the tab row — rarely changes, unlike the active tab's full state. */
+data class TabMeta(
+    val id: Long,
+    val label: String,
+    val connectionState: ConnectionState,
+    val hasError: Boolean,
+)
+
+data class SessionScreenState(
+    val tabs: List<TabMeta> = emptyList(),
+    val activeConnectionId: Long? = null,
+    // Full scrollback/history of the active tab only — see MudConnectionService.activeUiState
+    // for why every tab's state isn't aggregated here.
+    val active: SessionUiState = SessionUiState(),
 )
 
 /**
- * Thin adapter between the UI and [MudConnectionService], which owns the actual telnet
- * connection so it survives this ViewModel (and the Activity) being torn down. Binds to
- * the service on creation and mirrors its state; [disconnect]/[send] forward to the bound
- * service, while [connect] starts the service as a foreground service (not just a bind) —
- * that's what keeps the session alive after the UI unbinds.
+ * Thin adapter between the UI and [MudConnectionService], which owns every live connection
+ * ("tab") so they survive this ViewModel (and the Activity) being torn down. Binds to the
+ * service on creation and mirrors its aggregated state; [disconnect]/[send]/[setActiveTab]/
+ * [closeTab] forward to the bound service by connection id, while [openTab] starts the
+ * service as a foreground service (not just a bind) to create a new one — that's what keeps
+ * a session alive after the UI unbinds, not the binding itself.
  */
 class SessionViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val _uiState = MutableStateFlow(SessionUiState())
-    val uiState: StateFlow<SessionUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(SessionScreenState())
+    val uiState: StateFlow<SessionScreenState> = _uiState.asStateFlow()
 
     private var service: MudConnectionService? = null
     private var mirrorJob: Job? = null
@@ -64,21 +89,45 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         )
     }
 
-    fun connect(host: String, port: Int) {
+    /** Always opens a brand-new tab — see the tabs plan's "no reuse dedup" decision. */
+    fun openTab(
+        host: String,
+        port: Int,
+        worldId: Long? = null,
+        worldName: String? = null,
+        characterName: String? = null,
+        characterPassword: String? = null,
+    ) {
         if (host.isBlank()) return
         val context = getApplication<Application>()
         val intent = Intent(context, MudConnectionService::class.java)
             .putExtra(MudConnectionService.EXTRA_HOST, host)
             .putExtra(MudConnectionService.EXTRA_PORT, port)
+        if (worldId != null) intent.putExtra(MudConnectionService.EXTRA_WORLD_ID, worldId)
+        if (worldName != null) intent.putExtra(MudConnectionService.EXTRA_WORLD_NAME, worldName)
+        if (characterName != null) intent.putExtra(MudConnectionService.EXTRA_CHAR_NAME, characterName)
+        if (characterPassword != null) intent.putExtra(MudConnectionService.EXTRA_CHAR_PASSWORD, characterPassword)
         ContextCompat.startForegroundService(context, intent)
     }
 
-    fun disconnect() {
-        service?.disconnect()
+    fun connect(connectionId: Long, host: String, port: Int) {
+        service?.connect(connectionId, host, port)
     }
 
-    fun send(text: String, echoAs: String? = redactIfLoginCommand(text)) {
-        service?.send(text, echoAs)
+    fun disconnect(connectionId: Long) {
+        service?.disconnect(connectionId)
+    }
+
+    fun send(connectionId: Long, text: String, echoAs: String? = redactIfLoginCommand(text)) {
+        service?.send(connectionId, text, echoAs)
+    }
+
+    fun setActiveTab(connectionId: Long) {
+        service?.setActiveConnection(connectionId)
+    }
+
+    fun closeTab(connectionId: Long) {
+        service?.closeConnection(connectionId)
     }
 
     override fun onCleared() {

@@ -26,9 +26,18 @@ class AppPreferences private constructor(context: Context) {
             ?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
             ?: ThemeMode.SYSTEM
 
+    private val _autoReconnect = MutableStateFlow(prefs.getBoolean(KEY_AUTO_RECONNECT, true))
+    val autoReconnect: StateFlow<Boolean> = _autoReconnect
+
+    fun setAutoReconnect(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_RECONNECT, enabled).apply()
+        _autoReconnect.value = enabled
+    }
+
     companion object {
         private const val PREFS_NAME = "app_settings"
         private const val KEY_THEME_MODE = "theme_mode"
+        private const val KEY_AUTO_RECONNECT = "auto_reconnect"
 
         @Volatile private var instance: AppPreferences? = null
 

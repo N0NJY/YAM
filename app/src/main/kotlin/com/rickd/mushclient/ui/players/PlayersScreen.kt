@@ -39,7 +39,7 @@ import com.rickd.mushclient.data.World
 @Composable
 fun PlayersScreen(
     onBack: () -> Unit,
-    onConnect: (host: String, port: Int, characterName: String, characterPassword: String) -> Unit,
+    onConnect: (host: String, port: Int, characterName: String, characterPassword: String, worldId: Long, worldName: String) -> Unit,
     viewModel: PlayersViewModel = viewModel(),
 ) {
     val players by viewModel.players.collectAsState()
@@ -66,7 +66,14 @@ fun PlayersScreen(
                 PlayerRow(
                     player = player,
                     onClick = {
-                        onConnect(player.worldHost, player.worldPort, player.character.name, player.character.password)
+                        onConnect(
+                            player.worldHost,
+                            player.worldPort,
+                            player.character.name,
+                            player.character.password,
+                            player.character.worldId,
+                            player.worldName,
+                        )
                     },
                     onEdit = {
                         editing = player

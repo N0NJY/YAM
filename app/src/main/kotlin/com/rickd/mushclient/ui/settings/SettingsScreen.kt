@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,9 +29,12 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenWorlds: () -> Unit,
     onOpenPlayers: () -> Unit,
+    onOpenTriggers: () -> Unit,
+    onOpenSlashCommands: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
+    val autoReconnect by viewModel.autoReconnect.collectAsState()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(12.dp),
@@ -55,6 +59,26 @@ fun SettingsScreen(
             }
         }
 
+        Text("Connection", style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { viewModel.setAutoReconnect(!autoReconnect) }
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text("Auto-reconnect")
+                Text(
+                    text = "Automatically reconnect after a dropped connection",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = autoReconnect, onCheckedChange = viewModel::setAutoReconnect)
+        }
+
         Text("Manage", style = MaterialTheme.typography.titleMedium)
         ManageRow(
             title = "Worlds & Characters",
@@ -65,6 +89,16 @@ fun SettingsScreen(
             title = "Players",
             subtitle = "Every saved name and password, across all worlds, in one list",
             onClick = onOpenPlayers,
+        )
+        ManageRow(
+            title = "Triggers",
+            subtitle = "React to incoming text: recolor, hide, auto-reply, or fill the input box",
+            onClick = onOpenTriggers,
+        )
+        ManageRow(
+            title = "Slash Commands",
+            subtitle = "Define /name shortcuts that expand into a full command when typed",
+            onClick = onOpenSlashCommands,
         )
     }
 }

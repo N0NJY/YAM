@@ -225,7 +225,7 @@ class MudConnectionService : LifecycleService() {
             PendingIntent.FLAG_IMMUTABLE,
         )
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("MUSH Client")
+            .setContentTitle("YAM MUSH Client")
             .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(contentIntent)
             .setOngoing(true)

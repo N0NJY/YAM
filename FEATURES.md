@@ -8,13 +8,19 @@ nothing aspirational.
 - **Multiple simultaneous connections ("tabs")** — connect to several worlds/characters at
   once, each with its own independent scrollback, input history, and reconnect state. Switch
   between them with a tab row; close one without disturbing the others.
-- **Saved Worlds** — name, host, and port saved per world, managed from Settings.
+- **Address Book** — name, host, and port saved per world, organized into user-created
+  Groups (a flat sidebar of folders, plus the built-in All Worlds/Ungrouped views). Select a
+  world, then act on it: New/Copy/Edit/Connect/Delete.
 - **Saved Characters per World** — multiple characters (name + password) per world; picking
   one dials the world and logs that character in automatically. The login line itself is
   never shown in the scrollback or saved into input history — not even redacted — so a
-  password never lingers on screen.
-- **Players list** — every saved character across every world in one flat list, for jumping
-  straight to a character without going through its world first.
+  password never lingers on screen. The Address Book shows each world's most-recently-used
+  character at a glance.
+- **Characters list** — every saved character across every world in one flat list, for
+  jumping straight to a character without going through its world first.
+- **Soft-deleted worlds** — deleting a world moves it to Temp/Deleted instead of erasing it
+  immediately; restore it or delete it permanently from there. Deleting a Group never deletes
+  the worlds inside it — they just become Ungrouped.
 - **Connect without saving** — a blank host/port form for a one-off connection that isn't
   saved as a World.
 - **Auto-reconnect** — on an unexpected disconnect, retries after a fixed delay; toggle in
@@ -26,6 +32,17 @@ nothing aspirational.
 - **Foreground service** — the connection(s) stay alive in the background while you switch
   apps, with a persistent notification showing connection status (and, with multiple tabs
   open, a per-tab status list).
+
+## Navigation
+
+- **Settings ("⋮") is reachable from every screen** — including a live terminal — not just
+  the Address Book. Look up a character's password or copy a different world's host:port to
+  send someone, then get back.
+- **Getting back to a live session never loses or duplicates it.** Whether you return via the
+  system Back button, the Address Book's own "< Back" (shown whenever it was reached from
+  somewhere, hidden on the app's true start screen), or the tab row's "Worlds" button, you land
+  on the exact same tabs, scrollback, and connection state — opening Settings or browsing
+  Worlds along the way never silently opens a second connection to the same world.
 
 ## Protocol handling
 
@@ -102,8 +119,11 @@ history — recalling it later re-expands rather than replaying a stale result.
 
 - Theme: System default, Light, or Dark.
 - Auto-reconnect on/off.
-- Manage Worlds & Characters, Players, Triggers, and Slash Commands — each its own list/
+- Manage Worlds & Characters, Characters, Triggers, and Slash Commands — each its own list/
   editor screen.
+- A confirmation dialog before every destructive action (deleting a World, Character, Group,
+  Trigger, or Slash Command).
+- In-app Help — reads this project's own Help.md, browsable by section.
 
 ## Platform
 

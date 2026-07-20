@@ -4,20 +4,29 @@ A walkthrough of how to use YAM. See [FEATURES.md](FEATURES.md) for the full fea
 
 ## Getting connected
 
-**Save a world.** From the Worlds screen, tap **New World** and give it a name, host, and
-port. This is just an address book entry — it doesn't connect anything by itself.
+**Save a world.** From the Address Book, tap **New World** and give it a name, host, and
+port. This just creates an entry — it doesn't connect anything by itself.
 
-**Add a character (optional).** Tap a saved world to see its character list, then **New
-Character** to save a name and password. Tapping a saved character connects to that world
-*and* logs that character in automatically — you'll never see the login line itself in the
-scrollback, so the password never shows on screen.
+**Add a character (optional).** Select a saved world and tap **Connect To World** (or
+double-tap the world) to see its character list, then **New Character** to save a name and
+password. Tapping a saved character connects to that world *and* logs that character in
+automatically — you'll never see the login line itself in the scrollback, so the password
+never shows on screen.
 
 Don't want to log in as anyone in particular? Tap **Connect without character** on the
-character list, or **Connect without saving** on the Worlds screen for a one-off address you
+character list, or **Connect without saving** on the Address Book for a one-off address you
 don't want saved at all.
 
-**Players list.** Settings → Players shows every saved character across every world in one
-list, if you'd rather jump straight to a character without opening its world first.
+**Groups.** Organize your saved worlds into groups using the sidebar — **New Group** to
+create one, select a world and **Edit World** to move it in or out. Deleting a group never
+deletes the worlds inside it; they just become Ungrouped. **Copy World** duplicates a world's
+name/host/port (not its characters) — handy for a second entry to the same server. Deleting a
+world isn't final either — it moves to **Temp/Deleted**, where you can **Restore** it or
+delete it permanently; every delete (world, character, group, trigger, slash command) asks
+"Are you sure?" first.
+
+**Characters list.** Settings → Characters shows every saved character across every world in
+one list, if you'd rather jump straight to a character without opening its world first.
 
 ## Working with tabs
 
@@ -31,8 +40,14 @@ connection state.
   so you don't lose your place.
 - Tap **+** to open a blank form for a new connection (a manual host/port, same as "Connect
   without saving").
-- The **Worlds** button, to the left of the tab row, always takes you back to the Worlds
-  list — regardless of how many tabs you have open or closed.
+- The **Worlds** button, to the left of the tab row, always takes you back to the Address
+  Book — regardless of how many tabs you have open or closed. Getting back to your terminal
+  afterward — via the system Back button, the Address Book's own "< Back" (shown whenever
+  there's somewhere to return to), or by reopening the same world — always lands you on the
+  exact same tabs and scrollback, never a duplicate connection.
+- The **⋮** in the top corner reaches Settings directly from the terminal — no need to leave
+  your session just to check a character's password or grab a different world's host:port to
+  send someone.
 
 While any tab is connected (or reconnecting), a notification stays up so the connection
 survives you switching away to another app. With more than one tab open, the notification
@@ -86,13 +101,14 @@ first match wins, but a trigger can be marked to let later ones also check the s
 
 ## Settings
 
-Reach Settings from the Worlds screen (the ⋮ menu, top right).
+Reach Settings via the ⋮ menu — it's in the same top corner on every screen, including a live
+terminal, so you're never more than one tap away from it.
 
 - **Theme** — System default, Light, or Dark.
 - **Auto-reconnect** — automatically redial after a dropped connection. Doesn't apply when
   you disconnect on purpose.
-- **Worlds & Characters**, **Players**, **Triggers**, **Slash Commands** — manage everything
-  described above.
+- **Worlds & Characters**, **Characters**, **Triggers**, **Slash Commands**, **Help** —
+  manage everything described above, plus this page.
 
 ## Troubleshooting
 

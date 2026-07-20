@@ -10,3 +10,7 @@
 local.properties
 /app/build/
 /.claude/
+
+# Copied from the repo-root Help.md by the copyHelpMd Gradle task (app/build.gradle.kts) —
+# don't commit a second, driftable copy.
+/app/src/main/assets/help.md

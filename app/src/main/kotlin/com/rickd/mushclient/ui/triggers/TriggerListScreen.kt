@@ -49,21 +49,32 @@ import com.rickd.mushclient.data.Trigger
 import com.rickd.mushclient.data.PatternMatchType
 import com.rickd.mushclient.data.TriggerWithWorldName
 import com.rickd.mushclient.data.World
+import com.rickd.mushclient.ui.common.ConfirmDialog
+import com.rickd.mushclient.ui.common.SettingsIconButton
 
 @Composable
 fun TriggerListScreen(
     onBack: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: TriggerListViewModel = viewModel(),
 ) {
     val triggers by viewModel.triggers.collectAsState()
     val worlds by viewModel.worlds.collectAsState()
     var editing by remember { mutableStateOf<TriggerWithWorldName?>(null) }
     var showEditor by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<TriggerWithWorldName?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("< Back") }
-            Text("Triggers", style = MaterialTheme.typography.titleLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack) { Text("< Back") }
+                Text("Triggers", style = MaterialTheme.typography.titleLarge)
+            }
+            SettingsIconButton(onClick = onOpenSettings)
         }
 
         if (triggers.isEmpty()) {
@@ -83,7 +94,7 @@ fun TriggerListScreen(
                         editing = entry
                         showEditor = true
                     },
-                    onDelete = { viewModel.delete(entry.trigger) },
+                    onDelete = { deleting = entry },
                 )
             }
         }
@@ -123,6 +134,18 @@ fun TriggerListScreen(
                 )
                 showEditor = false
             },
+        )
+    }
+
+    deleting?.let { entry ->
+        ConfirmDialog(
+            title = "Delete trigger?",
+            message = "\"${entry.trigger.name}\" will be permanently deleted.",
+            onConfirm = {
+                viewModel.delete(entry.trigger)
+                deleting = null
+            },
+            onDismiss = { deleting = null },
         )
     }
 }

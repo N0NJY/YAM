@@ -12,13 +12,15 @@ interface CharacterDao {
     @Query("SELECT * FROM characters WHERE worldId = :worldId ORDER BY name COLLATE NOCASE")
     fun observeForWorld(worldId: Long): Flow<List<MushCharacter>>
 
-    // Every saved login identity across every world, for the flat cross-world "Players" list.
+    // Every saved login identity across every world, for the flat cross-world "Characters"
+    // list — excludes characters belonging to a soft-deleted (Temp/Deleted) world.
     @Query(
         """
         SELECT characters.*, connection_profiles.name AS worldName,
                connection_profiles.host AS worldHost, connection_profiles.port AS worldPort
         FROM characters
         INNER JOIN connection_profiles ON connection_profiles.id = characters.worldId
+        WHERE connection_profiles.isDeleted = 0
         ORDER BY connection_profiles.name COLLATE NOCASE, characters.name COLLATE NOCASE
         """,
     )

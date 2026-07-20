@@ -29,12 +29,15 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rickd.mushclient.data.MushCharacter
+import com.rickd.mushclient.ui.common.ConfirmDialog
+import com.rickd.mushclient.ui.common.SettingsIconButton
 
 @Composable
 fun CharacterListScreen(
     worldId: Long,
     onConnect: (host: String, port: Int, characterName: String?, characterPassword: String?, worldId: Long, worldName: String) -> Unit,
     onBack: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val application = LocalContext.current.applicationContext as Application
     val viewModel: CharacterListViewModel = viewModel(
@@ -45,11 +48,19 @@ fun CharacterListScreen(
     val characters by viewModel.characters.collectAsState()
     var editing by remember { mutableStateOf<MushCharacter?>(null) }
     var showEditor by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<MushCharacter?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("< Back") }
-            Text(world?.name ?: "Characters", style = MaterialTheme.typography.titleLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack) { Text("< Back") }
+                Text(world?.name ?: "Characters", style = MaterialTheme.typography.titleLarge)
+            }
+            SettingsIconButton(onClick = onOpenSettings)
         }
         world?.let {
             Text(
@@ -65,13 +76,14 @@ fun CharacterListScreen(
                     character = character,
                     onClick = {
                         val current = world ?: return@CharacterRow
+                        viewModel.recordConnected(character)
                         onConnect(current.host, current.port, character.name, character.password, current.id, current.name)
                     },
                     onEdit = {
                         editing = character
                         showEditor = true
                     },
-                    onDelete = { viewModel.delete(character) },
+                    onDelete = { deleting = character },
                 )
             }
         }
@@ -104,6 +116,18 @@ fun CharacterListScreen(
                 viewModel.save(editing?.id, name, password)
                 showEditor = false
             },
+        )
+    }
+
+    deleting?.let { character ->
+        ConfirmDialog(
+            title = "Delete character?",
+            message = "\"${character.name}\" will be permanently deleted.",
+            onConfirm = {
+                viewModel.delete(character)
+                deleting = null
+            },
+            onDismiss = { deleting = null },
         )
     }
 }

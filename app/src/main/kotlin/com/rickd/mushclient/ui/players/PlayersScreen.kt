@@ -35,22 +35,33 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rickd.mushclient.data.CharacterWithWorld
 import com.rickd.mushclient.data.World
+import com.rickd.mushclient.ui.common.ConfirmDialog
+import com.rickd.mushclient.ui.common.SettingsIconButton
 
 @Composable
 fun PlayersScreen(
     onBack: () -> Unit,
     onConnect: (host: String, port: Int, characterName: String, characterPassword: String, worldId: Long, worldName: String) -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: PlayersViewModel = viewModel(),
 ) {
     val players by viewModel.players.collectAsState()
     val worlds by viewModel.worlds.collectAsState()
     var editing by remember { mutableStateOf<CharacterWithWorld?>(null) }
     var showEditor by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<CharacterWithWorld?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("< Back") }
-            Text("Players", style = MaterialTheme.typography.titleLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack) { Text("< Back") }
+                Text("Characters", style = MaterialTheme.typography.titleLarge)
+            }
+            SettingsIconButton(onClick = onOpenSettings)
         }
 
         if (players.isEmpty()) {
@@ -66,6 +77,7 @@ fun PlayersScreen(
                 PlayerRow(
                     player = player,
                     onClick = {
+                        viewModel.recordConnected(player.character)
                         onConnect(
                             player.worldHost,
                             player.worldPort,
@@ -79,7 +91,7 @@ fun PlayersScreen(
                         editing = player
                         showEditor = true
                     },
-                    onDelete = { viewModel.delete(player.character) },
+                    onDelete = { deleting = player },
                 )
             }
         }
@@ -112,6 +124,18 @@ fun PlayersScreen(
                 viewModel.save(editing?.character?.id, worldId, name, password)
                 showEditor = false
             },
+        )
+    }
+
+    deleting?.let { player ->
+        ConfirmDialog(
+            title = "Delete character?",
+            message = "\"${player.character.name}\" (${player.worldName}) will be permanently deleted.",
+            onConfirm = {
+                viewModel.delete(player.character)
+                deleting = null
+            },
+            onDismiss = { deleting = null },
         )
     }
 }

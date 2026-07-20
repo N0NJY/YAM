@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
@@ -31,13 +33,14 @@ fun SettingsScreen(
     onOpenPlayers: () -> Unit,
     onOpenTriggers: () -> Unit,
     onOpenSlashCommands: () -> Unit,
+    onOpenHelp: () -> Unit,
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
     val autoReconnect by viewModel.autoReconnect.collectAsState()
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(12.dp),
+        modifier = Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -86,7 +89,7 @@ fun SettingsScreen(
             onClick = onOpenWorlds,
         )
         ManageRow(
-            title = "Players",
+            title = "Characters",
             subtitle = "Every saved name and password, across all worlds, in one list",
             onClick = onOpenPlayers,
         )
@@ -99,6 +102,11 @@ fun SettingsScreen(
             title = "Slash Commands",
             subtitle = "Define /name shortcuts that expand into a full command when typed",
             onClick = onOpenSlashCommands,
+        )
+        ManageRow(
+            title = "Help",
+            subtitle = "How to use YAM, section by section",
+            onClick = onOpenHelp,
         )
     }
 }

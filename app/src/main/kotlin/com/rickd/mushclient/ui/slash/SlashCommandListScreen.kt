@@ -41,21 +41,32 @@ import com.rickd.mushclient.data.PatternMatchType
 import com.rickd.mushclient.data.SlashCommand
 import com.rickd.mushclient.data.SlashCommandWithWorldName
 import com.rickd.mushclient.data.World
+import com.rickd.mushclient.ui.common.ConfirmDialog
+import com.rickd.mushclient.ui.common.SettingsIconButton
 
 @Composable
 fun SlashCommandListScreen(
     onBack: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: SlashCommandListViewModel = viewModel(),
 ) {
     val commands by viewModel.commands.collectAsState()
     val worlds by viewModel.worlds.collectAsState()
     var editing by remember { mutableStateOf<SlashCommandWithWorldName?>(null) }
     var showEditor by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<SlashCommandWithWorldName?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("< Back") }
-            Text("Slash Commands", style = MaterialTheme.typography.titleLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack) { Text("< Back") }
+                Text("Slash Commands", style = MaterialTheme.typography.titleLarge)
+            }
+            SettingsIconButton(onClick = onOpenSettings)
         }
 
         if (commands.isEmpty()) {
@@ -75,7 +86,7 @@ fun SlashCommandListScreen(
                         editing = entry
                         showEditor = true
                     },
-                    onDelete = { viewModel.delete(entry.command) },
+                    onDelete = { deleting = entry },
                 )
             }
         }
@@ -109,6 +120,18 @@ fun SlashCommandListScreen(
                 )
                 showEditor = false
             },
+        )
+    }
+
+    deleting?.let { entry ->
+        ConfirmDialog(
+            title = "Delete slash command?",
+            message = "\"/${entry.command.name}\" will be permanently deleted.",
+            onConfirm = {
+                viewModel.delete(entry.command)
+                deleting = null
+            },
+            onDismiss = { deleting = null },
         )
     }
 }

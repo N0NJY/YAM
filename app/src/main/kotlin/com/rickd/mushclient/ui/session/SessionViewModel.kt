@@ -89,6 +89,31 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         )
     }
 
+    // Guards openInitialTabIfNeeded below — survives Compose disposing/recomposing the screen
+    // (e.g. navigating away to Worlds and back via system Back), unlike a plain `remember` in
+    // the Composable, since this ViewModel instance lives as long as the nav back-stack entry.
+    private var hasOpenedInitialTab = false
+
+    /**
+     * Opens the tab this screen was launched with, but only the first time this ViewModel
+     * instance sees it — a second call (from the Composable's `LaunchedEffect(Unit)` re-running
+     * after the screen is disposed and recomposed, which happens on any trip away and back) is
+     * a no-op, so returning to a live session via Back doesn't silently open a duplicate tab to
+     * the same world.
+     */
+    fun openInitialTabIfNeeded(
+        host: String,
+        port: Int,
+        worldId: Long? = null,
+        worldName: String? = null,
+        characterName: String? = null,
+        characterPassword: String? = null,
+    ) {
+        if (hasOpenedInitialTab) return
+        hasOpenedInitialTab = true
+        openTab(host, port, worldId, worldName, characterName, characterPassword)
+    }
+
     /** Always opens a brand-new tab — see the tabs plan's "no reuse dedup" decision. */
     fun openTab(
         host: String,

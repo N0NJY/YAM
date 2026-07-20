@@ -70,9 +70,29 @@ private val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // groupId/lastCharacterId are plain nullable columns, not real FK constraints — see
+        // the World.kt doc comment for why (SQLite can't ALTER TABLE ADD COLUMN a new FK onto
+        // an already-populated table without recreating it, which isn't worth the risk here).
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN groupId INTEGER")
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN lastCharacterId INTEGER")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS world_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_connection_profiles_groupId ON connection_profiles(groupId)")
+    }
+}
+
 @Database(
-    entities = [World::class, MushCharacter::class, Trigger::class, SlashCommand::class],
-    version = 4,
+    entities = [World::class, MushCharacter::class, Trigger::class, SlashCommand::class, WorldGroup::class],
+    version = 5,
     exportSchema = false,
 )
 abstract class MudDatabase : RoomDatabase() {
@@ -80,6 +100,7 @@ abstract class MudDatabase : RoomDatabase() {
     abstract fun characterDao(): CharacterDao
     abstract fun triggerDao(): TriggerDao
     abstract fun slashCommandDao(): SlashCommandDao
+    abstract fun worldGroupDao(): WorldGroupDao
 
     companion object {
         @Volatile private var instance: MudDatabase? = null
@@ -90,7 +111,7 @@ abstract class MudDatabase : RoomDatabase() {
                     context.applicationContext,
                     MudDatabase::class.java,
                     "mud_client.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
             }
     }
 }

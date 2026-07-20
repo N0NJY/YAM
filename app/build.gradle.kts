@@ -5,6 +5,18 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Keeps the in-app Help viewer's content in lockstep with the repo-root Help.md — a single
+// source of truth, never hand-duplicated into assets.
+val copyHelpMd = tasks.register<Copy>("copyHelpMd") {
+    from(rootProject.file("Help.md"))
+    into("src/main/assets")
+    rename { "help.md" }
+}
+
+tasks.named("preBuild") {
+    dependsOn(copyHelpMd)
+}
+
 android {
     namespace = "com.rickd.mushclient"
     compileSdk = 35

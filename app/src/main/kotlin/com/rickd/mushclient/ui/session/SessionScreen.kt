@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rickd.mushclient.telnet.ConnectionState
+import com.rickd.mushclient.ui.common.SettingsIconButton
 import com.rickd.mushclient.ui.theme.TerminalGreen
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -57,14 +58,19 @@ fun SessionScreen(
     autoLoginCharacterPassword: String? = null,
     worldId: Long? = null,
     onNavigateToWorlds: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: SessionViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // No specific target was passed in (a bare re-entry, or "Connect without saving") — land
-    // on the blank draft form rather than whatever tab happens to be active. Any explicit
-    // target (a saved world or character) opens straight into its own real tab instead.
-    var showDraft by remember { mutableStateOf(initialHost == null) }
+    // No specific target was passed in (a bare re-entry, or "Connect without saving"): if tabs
+    // are already open (e.g. the user navigated away to Worlds/Settings and came back), land on
+    // the active one rather than hiding it behind a blank form — that blank form is only the
+    // right default when there's truly nothing else to show yet. `draftOverride` is null until
+    // the user explicitly taps "+" or a tab, at which point their choice wins regardless of
+    // tab count; until then this recomputes live as uiState.tabs loads in.
+    var draftOverride by remember { mutableStateOf<Boolean?>(null) }
+    val showDraft = draftOverride ?: (initialHost == null && uiState.tabs.isEmpty())
     var draftHost by remember { mutableStateOf(initialHost ?: "") }
     var draftPort by remember { mutableStateOf(initialPort ?: "") }
 
@@ -80,7 +86,7 @@ fun SessionScreen(
     // world never auto-connects — only an explicit character selection implies "log me in now".
     LaunchedEffect(Unit) {
         if (initialHost != null) {
-            viewModel.openTab(
+            viewModel.openInitialTabIfNeeded(
                 host = initialHost,
                 port = initialPort?.toIntOrNull() ?: return@LaunchedEffect,
                 worldId = worldId,
@@ -109,7 +115,7 @@ fun SessionScreen(
                     tabs = uiState.tabs,
                     activeConnectionId = uiState.activeConnectionId,
                     showDraft = showDraft,
-                    onSelectTab = { showDraft = false; viewModel.setActiveTab(it) },
+                    onSelectTab = { draftOverride = false; viewModel.setActiveTab(it) },
                     onCloseTab = { id ->
                         viewModel.closeTab(id)
                         inputDrafts.remove(id)
@@ -117,9 +123,12 @@ fun SessionScreen(
                         draftsBeforeHistory.remove(id)
                         listStates.remove(id)
                     },
-                    onNewConnection = { showDraft = true; draftHost = ""; draftPort = "" },
+                    onNewConnection = { draftOverride = true; draftHost = ""; draftPort = "" },
                 )
             }
+            // Reachable from the terminal itself — e.g. checking a character's password or a
+            // different world's host:port to hand to someone, then Back returns straight here.
+            SettingsIconButton(onClick = onOpenSettings)
         }
 
         if (showDraft) {
@@ -132,7 +141,7 @@ fun SessionScreen(
                 onConnect = {
                     val port = draftPort.toIntOrNull() ?: return@ConnectionBar
                     viewModel.openTab(draftHost, port)
-                    showDraft = false
+                    draftOverride = false
                 },
                 onDisconnect = {},
             )

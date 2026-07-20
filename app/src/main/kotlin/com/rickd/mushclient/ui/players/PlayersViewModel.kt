@@ -34,6 +34,14 @@ class PlayersViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun delete(character: MushCharacter) {
-        viewModelScope.launch { characterDao.delete(character) }
+        viewModelScope.launch {
+            characterDao.delete(character)
+            worldDao.clearLastCharacterId(character.id)
+        }
+    }
+
+    /** Records this world's most-recently-connected-as character, shown in the Address Book. */
+    fun recordConnected(character: MushCharacter) {
+        viewModelScope.launch { worldDao.setLastCharacterId(character.worldId, character.id) }
     }
 }

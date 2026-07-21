@@ -1,10 +1,34 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24"
+    android:viewportWidth="320"
+    android:viewportHeight="430"
     android:tint="#FFFFFFFF">
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M3,4h18v16h-18z M5,6v12h14v-12z M7,9.5l3.2,2.5l-3.2,2.5v-1.7l1.7,-0.8l-1.7,-0.8z M12,14h5v1.6h-5z" />
+    <!--
+        The YAM mascot's body + leaf sprout only (no phone/arms/face) — those details vanish
+        into an indistinct blob at the ~24dp status-bar size, so this traces just the body and
+        leaf outline paths from yam_logo_vector.svg, which stays legible that small. Android
+        replaces all fill/stroke color with a single tint for status-bar icons regardless, so
+        only the combined silhouette shape (not the color) matters here.
+    -->
+    <group android:translateX="-175" android:translateY="-60">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M258,122 C240,90 210,85 190,100 C215,112 230,118 248,132 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M258,122 C270,82 305,70 330,82 C310,100 292,110 268,130 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:pathData="M258,148 L258,122" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M232,148 A26,26 0 1,0 284,148 A26,26 0 1,0 232,148 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M220,305 C205,220 250,135 335,128 C420,135 475,200 480,295 C486,390 440,468 348,476 C255,468 210,400 220,305 Z" />
+    </group>
 </vector>

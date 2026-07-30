@@ -62,6 +62,7 @@ fun WorldAddressBookScreen(
     val groups by viewModel.groups.collectAsState()
     val selection by viewModel.selection.collectAsState()
     val worlds by viewModel.worlds.collectAsState()
+    val activeTabCount by viewModel.activeTabCount.collectAsState()
 
     // Selection doesn't carry meaning across a group switch — the previously selected row may
     // not even be visible in the new list.
@@ -84,6 +85,21 @@ fun WorldAddressBookScreen(
                 Text(text = "Address Book", style = MaterialTheme.typography.titleLarge)
             }
             SettingsIconButton(onClick = onOpenSettings)
+        }
+
+        // Only shown when a session is actually live — reassures that picking a world here
+        // opens an additional tab rather than replacing the one already running in the
+        // background, which isn't obvious from this screen alone (see SessionScreen's tab row).
+        if (activeTabCount > 0) {
+            Text(
+                text = if (activeTabCount == 1) {
+                    "1 connection active — picking a world opens another, it won't disconnect it."
+                } else {
+                    "$activeTabCount connections active — picking a world opens another, it won't disconnect them."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
 
         Row(modifier = Modifier.weight(1f).fillMaxWidth()) {

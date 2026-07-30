@@ -230,7 +230,18 @@ private fun TabRow(
         Tab(
             selected = showDraft,
             onClick = onNewConnection,
-            text = { Icon(Icons.Default.Add, contentDescription = "New connection") },
+            text = {
+                // Labeled, not just an icon — with only one tab open (the common case) a bare
+                // "+" reads as decoration rather than "open another connection alongside this
+                // one", which is exactly the affordance that needs to be found.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text("New Connection")
+                }
+            },
         )
     }
 }

@@ -100,6 +100,13 @@ say, `/grab` expanding to a longer command your MU* understands, with `%0`–`%9
 for whatever you typed after the command name. Set one up as *Global* to have it work on
 every world, or scope it to just one.
 
+## Fonts
+
+In **Settings → Fonts** you can change the font and size of the scrollback and, separately, of
+the input line. A sample line shows the result as you move the size slider, and open tabs
+update immediately. Keep the terminal on **Monospace** unless you don't mind banners, tables
+and ASCII art losing their alignment.
+
 ## Triggers
 
 Settings → Triggers lets you react automatically to text the server sends you. Each trigger

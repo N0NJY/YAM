@@ -56,7 +56,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.rickd.mushclient.data.AppPreferences
+import com.rickd.mushclient.ui.common.toFontFamily
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import com.rickd.mushclient.telnet.ConnectionState
@@ -321,6 +326,12 @@ private fun ColumnScope.ActiveSession(
     // permission needed, and the player chooses where the file goes.
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // Font settings are app-wide StateFlows, so a change in Settings reaches every open tab live.
+    val appPrefs = remember { AppPreferences.get(context.applicationContext) }
+    val terminalFont by appPrefs.terminalFont.collectAsState()
+    val terminalFontSize by appPrefs.terminalFontSize.collectAsState()
+    val inputFont by appPrefs.inputFont.collectAsState()
+    val inputFontSize by appPrefs.inputFontSize.collectAsState()
     var pendingLog by remember(connectionId) { mutableStateOf<String?>(null) }
     val saveLogLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain"),
@@ -439,13 +450,20 @@ private fun ColumnScope.ActiveSession(
             val rendered = remember(line, lineMatches, currentOnLine) {
                 line.withUrlLinks().withFindHighlights(lineMatches, currentOnLine)
             }
-            Text(text = rendered, fontFamily = FontFamily.Monospace, color = TerminalGreen)
+            Text(
+                text = rendered,
+                fontFamily = terminalFont.toFontFamily(),
+                fontSize = terminalFontSize.sp,
+                lineHeight = (terminalFontSize * 1.35f).sp,
+                color = TerminalGreen,
+            )
         }
     }
 
     InputBar(
         value = inputText,
         onValueChange = onInputTextChange,
+        textStyle = LocalTextStyle.current.copy(fontFamily = inputFont.toFontFamily(), fontSize = inputFontSize.sp),
         enabled = uiState.connectionState == ConnectionState.CONNECTED,
         canNavigateOlder = uiState.history.isNotEmpty() && historyIndex < uiState.history.lastIndex,
         canNavigateNewer = historyIndex >= 0,
@@ -547,6 +565,7 @@ private fun ConnectionBar(
 private fun InputBar(
     value: String,
     onValueChange: (String) -> Unit,
+    textStyle: TextStyle,
     enabled: Boolean,
     canNavigateOlder: Boolean,
     canNavigateNewer: Boolean,
@@ -572,6 +591,7 @@ private fun InputBar(
             onValueChange = onValueChange,
             enabled = enabled,
             singleLine = true,
+            textStyle = textStyle,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { if (value.isNotEmpty()) onSend() }),
             modifier = Modifier.weight(1f),

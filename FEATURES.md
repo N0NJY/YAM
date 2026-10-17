@@ -156,6 +156,10 @@ history — recalling it later re-expands rather than replaying a stale result.
 - Auto-reconnect on/off.
 - Manage Worlds & Characters, Characters, Triggers, and Slash Commands — each its own list/
   editor screen.
+- Fonts: the terminal (scrollback) and the input line each get their own font family
+  (Monospace, Sans Serif, Serif) and size (8-32 sp), with a live sample. Monospace is the
+  terminal default so banners and tables stay aligned. Changes apply to every open tab at once
+  and are remembered.
 - A confirmation dialog before every destructive action (deleting a World, Character, Group,
   Trigger, or Slash Command).
 - In-app Help — reads this project's own Help.md, browsable by section.

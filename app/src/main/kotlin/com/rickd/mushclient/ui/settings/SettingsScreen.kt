@@ -13,7 +13,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +25,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.rickd.mushclient.data.FontChoice
+import com.rickd.mushclient.data.MAX_FONT_SIZE_SP
+import com.rickd.mushclient.data.MIN_FONT_SIZE_SP
+import com.rickd.mushclient.ui.common.toFontFamily
+import kotlin.math.roundToInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rickd.mushclient.data.ThemeMode
 
@@ -38,6 +46,10 @@ fun SettingsScreen(
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
     val autoReconnect by viewModel.autoReconnect.collectAsState()
+    val terminalFont by viewModel.terminalFont.collectAsState()
+    val terminalFontSize by viewModel.terminalFontSize.collectAsState()
+    val inputFont by viewModel.inputFont.collectAsState()
+    val inputFontSize by viewModel.inputFontSize.collectAsState()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState()),
@@ -61,6 +73,24 @@ fun SettingsScreen(
                 Text(mode.label())
             }
         }
+
+        Text("Fonts", style = MaterialTheme.typography.titleMedium)
+        FontSetting(
+            title = "Terminal font",
+            subtitle = "The scrollback. Monospace keeps banners and tables lined up.",
+            font = terminalFont,
+            sizeSp = terminalFontSize,
+            onFont = viewModel::setTerminalFont,
+            onSize = viewModel::setTerminalFontSize,
+        )
+        FontSetting(
+            title = "Input font",
+            subtitle = "The command line you type into.",
+            font = inputFont,
+            sizeSp = inputFontSize,
+            onFont = viewModel::setInputFont,
+            onSize = viewModel::setInputFontSize,
+        )
 
         Text("Connection", style = MaterialTheme.typography.titleMedium)
         Row(
@@ -107,6 +137,51 @@ fun SettingsScreen(
             title = "Help",
             subtitle = "How to use YAM, section by section",
             onClick = onOpenHelp,
+        )
+    }
+}
+
+@Composable
+private fun FontSetting(
+    title: String,
+    subtitle: String,
+    font: FontChoice,
+    sizeSp: Int,
+    onFont: (FontChoice) -> Unit,
+    onSize: (Int) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title)
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FontChoice.entries.forEach { choice ->
+                FilterChip(
+                    selected = choice == font,
+                    onClick = { onFont(choice) },
+                    label = { Text(choice.label) },
+                )
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Slider(
+                value = sizeSp.toFloat(),
+                onValueChange = { onSize(it.roundToInt()) },
+                valueRange = MIN_FONT_SIZE_SP.toFloat()..MAX_FONT_SIZE_SP.toFloat(),
+                steps = MAX_FONT_SIZE_SP - MIN_FONT_SIZE_SP - 1,
+                modifier = Modifier.weight(1f),
+            )
+            Text("$sizeSp sp")
+        }
+        // A live sample, so the choice is visible before leaving Settings.
+        Text(
+            text = "The quick brown fox jumps over 0123456789",
+            fontFamily = font.toFontFamily(),
+            fontSize = sizeSp.sp,
+            lineHeight = (sizeSp * 1.35f).sp,
         )
     }
 }

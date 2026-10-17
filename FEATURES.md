@@ -58,6 +58,18 @@ nothing aspirational.
   interpreted.
 - `/debug` toggles a live view of the raw negotiation traffic, for diagnosing a fussy server.
 
+## Find
+
+- Tap **Find** under the connection bar to search the active tab's scrollback. The search is
+  live (updates as you type), plain text rather than a pattern, and case-insensitive; the
+  **Aa** chip makes it case-sensitive.
+- Every match is highlighted and the current one stands out. Previous/Next step through them
+  and wrap around at either end; the counter reads `3 / 13`. A new search starts at the most
+  recent match, since the text you want in a MUD is usually the newest.
+- Highlights are an overlay — the text and its colors are untouched. While a search is active
+  the view stays put instead of jumping to the bottom as new text arrives. The system Back
+  button (or the X) closes the bar and clears the highlights.
+
 ## Timestamps
 
 - Per-tab, off by default, never remembered. Toggle with the **Timestamps** chip under the

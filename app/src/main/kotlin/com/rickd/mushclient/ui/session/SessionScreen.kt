@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -29,6 +29,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -302,8 +303,32 @@ private fun ColumnScope.ActiveSession(
     var editHost by remember(connectionId) { mutableStateOf(uiState.host) }
     var editPort by remember(connectionId) { mutableStateOf(uiState.port) }
 
+    // Find state is per tab and lives here (not in FindBar) so it survives tab switches.
+    var findOpen by remember(connectionId) { mutableStateOf(false) }
+    var findQuery by remember(connectionId) { mutableStateOf("") }
+    var findCaseSensitive by remember(connectionId) { mutableStateOf(false) }
+    var findCurrent by remember(connectionId) { mutableStateOf(-1) }
+    val matches = remember(uiState.lines, findOpen, findQuery, findCaseSensitive) {
+        if (findOpen) findMatches(uiState.lines.map { it.text }, findQuery, findCaseSensitive) else emptyList()
+    }
+    val matchesByLine = remember(matches) { matches.groupBy { it.line } }
+    // Lines only ever append, so an index into `matches` stays valid as text arrives; clamp
+    // for the one case it can shrink (the scrollback being cleared).
+    val current = findCurrent.coerceIn(-1, matches.lastIndex)
+    val searching = findOpen && findQuery.isNotEmpty()
+
+    // A new query starts at the most recent match — in a MUD the text you want is usually the
+    // newest — and Previous walks back through older ones.
+    LaunchedEffect(findOpen, findQuery, findCaseSensitive) { findCurrent = matches.lastIndex }
+    LaunchedEffect(current, findQuery) {
+        matches.getOrNull(current)?.let { listState.animateScrollToItem(it.line) }
+    }
+    // Back closes the find bar first, before it would navigate away.
+    BackHandler(enabled = findOpen) { findOpen = false }
+
     LaunchedEffect(connectionId, uiState.lines.size) {
-        if (uiState.lines.isNotEmpty()) {
+        // Don't yank the view to the bottom while the player is reading search results.
+        if (uiState.lines.isNotEmpty() && !searching) {
             listState.animateScrollToItem(uiState.lines.size - 1)
         }
     }
@@ -327,10 +352,26 @@ private fun ColumnScope.ActiveSession(
         onDisconnect = { viewModel.disconnect(connectionId) },
         showTimestamps = uiState.showTimestamps,
         onToggleTimestamps = { viewModel.setTimestamps(connectionId, null) },
+        findOpen = findOpen,
+        onToggleFind = { findOpen = !findOpen },
     )
 
     uiState.errorMessage?.let { message ->
         Text(text = message, color = MaterialTheme.colorScheme.error)
+    }
+
+    if (findOpen) {
+        FindBar(
+            query = findQuery,
+            onQueryChange = { findQuery = it },
+            caseSensitive = findCaseSensitive,
+            onToggleCase = { findCaseSensitive = !findCaseSensitive },
+            matchCount = matches.size,
+            currentIndex = current,
+            onPrevious = { findCurrent = stepIndex(current, matches.size, -1) },
+            onNext = { findCurrent = stepIndex(current, matches.size, +1) },
+            onClose = { findOpen = false },
+        )
     }
 
     LazyColumn(
@@ -339,10 +380,14 @@ private fun ColumnScope.ActiveSession(
             .weight(1f)
             .fillMaxWidth(),
     ) {
-        items(uiState.lines) { line ->
+        itemsIndexed(uiState.lines) { index, line ->
+            val lineMatches = matchesByLine[index]
+            val currentOnLine = matches.getOrNull(current)?.takeIf { it.line == index }
             // TerminalGreen is the default; ANSI SpanStyles in `line` override it per-run.
-            val linked = remember(line) { line.withUrlLinks() }
-            Text(text = linked, fontFamily = FontFamily.Monospace, color = TerminalGreen)
+            val rendered = remember(line, lineMatches, currentOnLine) {
+                line.withUrlLinks().withFindHighlights(lineMatches, currentOnLine)
+            }
+            Text(text = rendered, fontFamily = FontFamily.Monospace, color = TerminalGreen)
         }
     }
 
@@ -387,6 +432,8 @@ private fun ConnectionBar(
     // Null on the draft "new connection" form, which has no session to apply timestamps to.
     showTimestamps: Boolean = false,
     onToggleTimestamps: (() -> Unit)? = null,
+    findOpen: Boolean = false,
+    onToggleFind: (() -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
@@ -423,12 +470,17 @@ private fun ConnectionBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = "Status: ${connectionState.name}")
-            onToggleTimestamps?.let { toggle ->
-                FilterChip(
-                    selected = showTimestamps,
-                    onClick = toggle,
-                    label = { Text("Timestamps") },
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                onToggleFind?.let { toggle ->
+                    FilterChip(selected = findOpen, onClick = toggle, label = { Text("Find") })
+                }
+                onToggleTimestamps?.let { toggle ->
+                    FilterChip(
+                        selected = showTimestamps,
+                        onClick = toggle,
+                        label = { Text("Timestamps") },
+                    )
+                }
             }
         }
     }

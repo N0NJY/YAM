@@ -53,6 +53,13 @@ While any tab is connected (or reconnecting), a notification stays up so the con
 survives you switching away to another app. With more than one tab open, the notification
 lists each one's status.
 
+## Finding text
+
+Tap **Find** (next to **Timestamps**) to search the current tab's scrollback. Matches highlight
+as you type; use the up/down arrows to step through them (they wrap around), and **Aa** to make
+the search case-sensitive. A new search starts at the most recent match. Back or the **X**
+closes the bar.
+
 ## Sending commands
 
 Type into the box at the bottom and tap **Send** (or use your keyboard's Send/Enter key).

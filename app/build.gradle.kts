@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    testImplementation("junit:junit:4.13.2")
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.ui.tooling)
 }

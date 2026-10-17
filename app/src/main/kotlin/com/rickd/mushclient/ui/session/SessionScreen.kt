@@ -301,7 +301,8 @@ private fun ColumnScope.ActiveSession(
     ) {
         items(uiState.lines) { line ->
             // TerminalGreen is the default; ANSI SpanStyles in `line` override it per-run.
-            Text(text = line, fontFamily = FontFamily.Monospace, color = TerminalGreen)
+            val linked = remember(line) { line.withUrlLinks() }
+            Text(text = linked, fontFamily = FontFamily.Monospace, color = TerminalGreen)
         }
     }
 

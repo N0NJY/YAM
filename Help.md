@@ -72,6 +72,10 @@ Type into the box at the bottom and tap **Send** (or use your keyboard's Send/En
 The up/down arrows to the left of the input box recall previously sent commands, like shell
 history — each tab keeps its own.
 
+**Pasting several lines:** paste a block of commands into the input box and YAM shows a
+preview ("Send 3 lines?"). Tap **Send** to send them one after another, or **Cancel** to send
+nothing. Blank lines are skipped.
+
 ### Slash commands
 
 Typing `/something` at the start of a line is checked against a small set of built-in

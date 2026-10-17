@@ -460,9 +460,32 @@ private fun ColumnScope.ActiveSession(
         }
     }
 
+    // A paste containing line breaks never reaches the box as-is: with several real lines it
+    // asks first, then sends them one at a time through the same path as a typed line.
+    var pastedLines by remember(connectionId) { mutableStateOf<List<String>?>(null) }
+    pastedLines?.let { lines ->
+        PasteConfirmDialog(
+            lines = lines,
+            onSend = {
+                lines.forEach { viewModel.send(connectionId, it) }
+                onInputTextChange("")
+                onHistoryIndexChange(-1)
+                pastedLines = null
+            },
+            onDismiss = { pastedLines = null },
+        )
+    }
+
     InputBar(
         value = inputText,
-        onValueChange = onInputTextChange,
+        onValueChange = { newText ->
+            if (hasLineBreak(newText)) {
+                val lines = splitPastedLines(newText)
+                if (lines.size > 1) pastedLines = lines else onInputTextChange(collapseToSingleLine(newText))
+            } else {
+                onInputTextChange(newText)
+            }
+        },
         textStyle = LocalTextStyle.current.copy(fontFamily = inputFont.toFontFamily(), fontSize = inputFontSize.sp),
         enabled = uiState.connectionState == ConnectionState.CONNECTED,
         canNavigateOlder = uiState.history.isNotEmpty() && historyIndex < uiState.history.lastIndex,

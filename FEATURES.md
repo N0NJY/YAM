@@ -146,6 +146,12 @@ history — recalling it later re-expands rather than replaying a stale result.
 ## Input
 
 - Up/down arrow recall of previously sent commands, independent per tab.
+- **Pasting several lines** asks first: a preview shows "Send N lines?" with Send / Cancel.
+  On Send, each line goes to the world in order, exactly as if typed and sent (so `/commands`
+  work and each line is echoed and kept in history). Cancel sends nothing and leaves the box as
+  it was. Blank lines are skipped, and a single trailing line break doesn't count as a line.
+  A paste that is really just one line (e.g. `look` plus a trailing newline) simply lands in
+  the box as one line, no prompt.
 - A manually typed `connect <name> <password>` (or `co`/`create`/`cr`) is automatically
   redacted to `connect name ********` in the scrollback and history, even though it wasn't
   sent through the character auto-login path.

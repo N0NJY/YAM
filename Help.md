@@ -60,6 +60,12 @@ as you type; use the up/down arrows to step through them (they wrap around), and
 the search case-sensitive. A new search starts at the most recent match. Back or the **X**
 closes the bar.
 
+## Saving a log
+
+Tap **Save Log** to save the current tab's scrollback as a text file. Android's file picker
+opens with a suggested name (world name plus the date and time); pick a folder and tap Save.
+The file begins with a short header, then the text as it appears on screen.
+
 ## Sending commands
 
 Type into the box at the bottom and tap **Send** (or use your keyboard's Send/Enter key).

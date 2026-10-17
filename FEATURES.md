@@ -58,6 +58,16 @@ nothing aspirational.
   interpreted.
 - `/debug` toggles a live view of the raw negotiation traffic, for diagnosing a fussy server.
 
+## Saving a log
+
+- **Save Log** (next to Find) writes the active tab's whole scrollback to a plain-text file
+  you choose — Android's own "Save as" picker opens with a name like
+  `YAM-LocalRhost-20261017-113228.txt`, so no storage permission is involved.
+- The file starts with a short header (world, host:port, Character, when it was saved, line
+  count) followed by the scrollback exactly as it reads on screen — timestamps included if
+  they were on, ANSI color codes not. It holds what was showing when you tapped Save.
+- Disabled while the scrollback is empty.
+
 ## Find
 
 - Tap **Find** under the connection bar to search the active tab's scrollback. The search is

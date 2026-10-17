@@ -29,7 +29,19 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AssistChip
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.rickd.mushclient.service.SessionLog
+import java.time.LocalDateTime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -178,6 +190,7 @@ fun SessionScreen(
                     draftBeforeHistory = draftsBeforeHistory[activeId] ?: "",
                     onDraftBeforeHistoryChange = { draftsBeforeHistory[activeId] = it },
                     listState = listStates.getOrPut(activeId) { LazyListState() },
+                    tab = uiState.tabs.firstOrNull { it.id == activeId },
                 )
             }
         }
@@ -297,11 +310,38 @@ private fun ColumnScope.ActiveSession(
     draftBeforeHistory: String,
     onDraftBeforeHistoryChange: (String) -> Unit,
     listState: LazyListState,
+    tab: TabMeta?,
 ) {
     // Local editable copy of this tab's host/port — reseeded whenever the tab itself changes,
     // but not on every service update, so editing while e.g. RECONNECTING isn't clobbered.
     var editHost by remember(connectionId) { mutableStateOf(uiState.host) }
     var editPort by remember(connectionId) { mutableStateOf(uiState.port) }
+
+    // Save Log uses the system "Save as" picker (Storage Access Framework): no storage
+    // permission needed, and the player chooses where the file goes.
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var pendingLog by remember(connectionId) { mutableStateOf<String?>(null) }
+    val saveLogLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain"),
+    ) { uri: Uri? ->
+        val text = pendingLog
+        pendingLog = null
+        if (uri != null && text != null) {
+            scope.launch {
+                val saved = withContext(Dispatchers.IO) {
+                    runCatching {
+                        context.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(text.toByteArray(Charsets.UTF_8)) }
+                    }.isSuccess
+                }
+                Toast.makeText(
+                    context,
+                    if (saved) "Log saved" else "Couldn't save the log",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
 
     // Find state is per tab and lives here (not in FindBar) so it survives tab switches.
     var findOpen by remember(connectionId) { mutableStateOf(false) }
@@ -354,6 +394,18 @@ private fun ColumnScope.ActiveSession(
         onToggleTimestamps = { viewModel.setTimestamps(connectionId, null) },
         findOpen = findOpen,
         onToggleFind = { findOpen = !findOpen },
+        canSaveLog = uiState.lines.isNotEmpty(),
+        onSaveLog = {
+            // Snapshot now, so the file holds what was on screen when Save was tapped even if
+            // more text arrives while the system file picker is open.
+            val now = LocalDateTime.now()
+            val label = tab?.label ?: "${uiState.host}:${uiState.port}"
+            pendingLog = SessionLog.build(
+                label, uiState.host, uiState.port, tab?.characterName,
+                uiState.lines.map { it.text }, now,
+            )
+            saveLogLauncher.launch(SessionLog.fileName(label, now))
+        },
     )
 
     uiState.errorMessage?.let { message ->
@@ -434,6 +486,8 @@ private fun ConnectionBar(
     onToggleTimestamps: (() -> Unit)? = null,
     findOpen: Boolean = false,
     onToggleFind: (() -> Unit)? = null,
+    canSaveLog: Boolean = false,
+    onSaveLog: (() -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
@@ -473,6 +527,9 @@ private fun ConnectionBar(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 onToggleFind?.let { toggle ->
                     FilterChip(selected = findOpen, onClick = toggle, label = { Text("Find") })
+                }
+                onSaveLog?.let { save ->
+                    AssistChip(onClick = save, enabled = canSaveLog, label = { Text("Save Log") })
                 }
                 onToggleTimestamps?.let { toggle ->
                     FilterChip(

@@ -8,7 +8,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,7 +40,12 @@ class MainActivity : ComponentActivity() {
             }
             MushClientTheme(darkTheme = darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MudNavHost()
+                    // targetSdk 35 forces edge-to-edge; without this, content draws under the
+                    // status bar and the tablet taskbar. imePadding in SessionScreen is not
+                    // double-counted because safeDrawing already consumes those insets.
+                    Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
+                        MudNavHost()
+                    }
                 }
             }
         }

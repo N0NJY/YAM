@@ -31,6 +31,8 @@ import com.rickd.mushclient.telnet.TelnetClient
 import com.rickd.mushclient.telnet.TelnetEvent
 import com.rickd.mushclient.trigger.BuiltInAction
 import com.rickd.mushclient.trigger.SlashCommandEngine
+import java.time.LocalDateTime
+import java.time.LocalTime
 import com.rickd.mushclient.trigger.SlashResolution
 import com.rickd.mushclient.trigger.TriggerEngine
 import com.rickd.mushclient.ui.session.SessionScreenState
@@ -168,6 +170,10 @@ class MudConnectionService : LifecycleService() {
 
     fun send(connectionId: Long, text: String, echoAs: String? = text) {
         sessions[connectionId]?.send(text, echoAs)
+    }
+
+    fun setTimestamps(connectionId: Long, enabled: Boolean?) {
+        sessions[connectionId]?.setTimestamps(enabled)
     }
 
     fun setActiveConnection(connectionId: Long) {
@@ -384,7 +390,7 @@ class MudConnectionService : LifecycleService() {
         private fun recordEcho(echoAs: String) {
             _uiState.update {
                 it.copy(
-                    lines = it.lines + AnnotatedString("> $echoAs"),
+                    lines = it.lines + stamped(AnnotatedString("> $echoAs"), it.showTimestamps),
                     // Most-recent-first, re-sending a repeated command moves it to the front
                     // instead of listing it twice.
                     history = (listOf(echoAs) + it.history.filterNot { cmd -> cmd == echoAs }).take(MAX_HISTORY),
@@ -518,6 +524,7 @@ class MudConnectionService : LifecycleService() {
                 BuiltInAction.ReconnectNow -> reconnectNow()
                 BuiltInAction.Disconnect -> disconnect()
                 is BuiltInAction.Connect -> connectToAddress(action.address)
+                is BuiltInAction.SetTimestamps -> setTimestamps(action.enabled)
                 is BuiltInAction.SetDebug -> {
                     debugEnabled = action.enabled ?: !debugEnabled
                     printSystemMessage(if (debugEnabled) "Debug: ON" else "Debug: OFF")
@@ -535,7 +542,24 @@ class MudConnectionService : LifecycleService() {
         }
 
         private fun printSystemMessage(text: String) {
-            _uiState.update { it.copy(lines = it.lines + recolor(AnnotatedString(text), TerminalSystemYellow)) }
+            _uiState.update {
+                it.copy(lines = it.lines + stamped(recolor(AnnotatedString(text), TerminalSystemYellow), it.showTimestamps))
+            }
+        }
+
+        private fun stamped(line: AnnotatedString, on: Boolean, time: LocalTime = LocalTime.now()): AnnotatedString =
+            if (on) Timestamps.apply(line, time) else line
+
+        /**
+         * Flips (or, with an explicit [enabled], sets) this tab's timestamps. Switching to the
+         * state it is already in is a no-op. The marker line carries its own full date/time, so
+         * it is added unstamped, and nothing already on screen is rewritten.
+         */
+        fun setTimestamps(enabled: Boolean?) {
+            val target = enabled ?: !_uiState.value.showTimestamps
+            if (target == _uiState.value.showTimestamps) return
+            val marker = recolor(AnnotatedString(Timestamps.marker(target, LocalDateTime.now())), TerminalSystemYellow)
+            _uiState.update { it.copy(showTimestamps = target, lines = it.lines + marker) }
         }
 
         private fun appendText(chunk: String) {
@@ -570,7 +594,10 @@ class MudConnectionService : LifecycleService() {
                 }
 
                 if (visibleLines.isNotEmpty()) {
-                    _uiState.update { it.copy(lines = it.lines + visibleLines) }
+                    val time = LocalTime.now()
+                    _uiState.update { state ->
+                        state.copy(lines = state.lines + visibleLines.map { stamped(it, state.showTimestamps, time) })
+                    }
                 }
                 latestInput?.let(::setPendingInput)
                 // Not echoed (echoAs = null): the player didn't type these, an auto-reply

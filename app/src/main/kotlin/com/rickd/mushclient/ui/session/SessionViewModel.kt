@@ -31,6 +31,8 @@ data class SessionUiState(
     // on every fire (even a repeat of the same text) so the UI's LaunchedEffect always re-runs.
     val pendingInputText: String? = null,
     val pendingInputNonce: Long = 0,
+    // Per-tab: prefix new scrollback lines with [HH:MM:SS]. Off by default, never persisted.
+    val showTimestamps: Boolean = false,
 )
 
 /** Cheap per-tab summary for the tab row — rarely changes, unlike the active tab's full state. */
@@ -145,6 +147,11 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
 
     fun send(connectionId: Long, text: String, echoAs: String? = redactIfLoginCommand(text)) {
         service?.send(connectionId, text, echoAs)
+    }
+
+    /** null toggles. Same path the `/timestamps` command takes. */
+    fun setTimestamps(connectionId: Long, enabled: Boolean?) {
+        service?.setTimestamps(connectionId, enabled)
     }
 
     fun setActiveTab(connectionId: Long) {

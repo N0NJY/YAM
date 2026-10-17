@@ -55,6 +55,15 @@ nothing aspirational.
   interpreted.
 - `/debug` toggles a live view of the raw negotiation traffic, for diagnosing a fussy server.
 
+## Timestamps
+
+- Per-tab, off by default, never remembered. Toggle with the **Timestamps** chip under the
+  connection bar or with `/timestamps [on|off]`.
+- While on, every new line (server text, your own echoed commands, and local notices) gets a
+  dimmed `[HH:MM:SS]` prefix. Lines already on screen are never rewritten.
+- Switching on or off prints one full date-and-time marker line (e.g.
+  `--- Timestamps ON: Sat, Oct 17 2026 10:42:07 ---`), so a copied log still says what day it was.
+
 ## Rendering
 
 - Full ANSI SGR support: standard 16-color, 256-color (`38;5;N`), and 24-bit truecolor
@@ -102,6 +111,7 @@ always sends `/foo` literally.
 | `/disconnect` | Disconnect |
 | `/connect <world-name-or-host:port>` | Redial this tab to a different address |
 | `/debug [on\|off]` | Toggle (or set) a live view of raw telnet negotiation traffic |
+| `/timestamps [on\|off]` | Toggle (or set) a `[HH:MM:SS]` prefix on new scrollback lines for this tab |
 
 **Custom, user-defined:** per world or Global, `/name` plus a pattern (wildcard/regex/
 contains) matched against the typed arguments, expanding into one or more lines sent to the

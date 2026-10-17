@@ -77,6 +77,7 @@ commands first, then any custom ones you've defined, before being sent to the se
 | `/connect Cave Mush` | Redial this tab to a saved world by name |
 | `/connect example.com:4201` | Redial this tab to a raw host:port |
 | `/debug on` | Show raw telnet negotiation traffic (for troubleshooting a server) |
+| `/timestamps` | Turn `[HH:MM:SS]` timestamps on new lines on or off for this tab (`/timestamps on`, `/timestamps off`) |
 
 Typed a real command that happens to start with `/` and don't want it intercepted? Start it
 with `//` instead — `//foo` always sends `/foo` to the server untouched.

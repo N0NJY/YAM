@@ -28,6 +28,8 @@ sealed class BuiltInAction {
     data class Connect(val address: String) : BuiltInAction()
     /** null means toggle rather than set an explicit state. */
     data class SetDebug(val enabled: Boolean?) : BuiltInAction()
+    /** null means toggle rather than set an explicit state. */
+    data class SetTimestamps(val enabled: Boolean?) : BuiltInAction()
 }
 
 /**
@@ -90,6 +92,11 @@ object SlashCommandEngine {
         "connect" -> args.trim().takeIf { it.isNotEmpty() }
             ?.let { SlashResolution.Action(BuiltInAction.Connect(it)) }
         "debug" -> SlashResolution.Action(BuiltInAction.SetDebug(parseOnOff(args)))
+        "timestamps" -> when {
+            args.isBlank() -> SlashResolution.Action(BuiltInAction.SetTimestamps(null))
+            parseOnOff(args) != null -> SlashResolution.Action(BuiltInAction.SetTimestamps(parseOnOff(args)))
+            else -> SlashResolution.SystemMessage("Usage: /timestamps [on|off]")
+        }
         else -> null
     }
 

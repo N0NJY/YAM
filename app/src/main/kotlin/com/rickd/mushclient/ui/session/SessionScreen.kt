@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -287,6 +288,8 @@ private fun ColumnScope.ActiveSession(
         connectionState = uiState.connectionState,
         onConnect = { viewModel.connect(connectionId, editHost, editPort.toIntOrNull() ?: return@ConnectionBar) },
         onDisconnect = { viewModel.disconnect(connectionId) },
+        showTimestamps = uiState.showTimestamps,
+        onToggleTimestamps = { viewModel.setTimestamps(connectionId, null) },
     )
 
     uiState.errorMessage?.let { message ->
@@ -344,6 +347,9 @@ private fun ConnectionBar(
     connectionState: ConnectionState,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
+    // Null on the draft "new connection" form, which has no session to apply timestamps to.
+    showTimestamps: Boolean = false,
+    onToggleTimestamps: (() -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
@@ -374,7 +380,20 @@ private fun ConnectionBar(
                 ConnectionState.DISCONNECTED -> Button(onClick = onConnect) { Text("Connect") }
             }
         }
-        Text(text = "Status: ${connectionState.name}")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = "Status: ${connectionState.name}")
+            onToggleTimestamps?.let { toggle ->
+                FilterChip(
+                    selected = showTimestamps,
+                    onClick = toggle,
+                    label = { Text("Timestamps") },
+                )
+            }
+        }
     }
 }
 

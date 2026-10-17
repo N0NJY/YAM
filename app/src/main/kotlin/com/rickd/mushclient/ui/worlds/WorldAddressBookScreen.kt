@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,10 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -115,7 +121,9 @@ fun WorldAddressBookScreen(
                 modifier = Modifier.width(220.dp).fillMaxHeight(),
             )
 
-            Column(modifier = Modifier.weight(1f).fillMaxHeight().padding(start = 12.dp)) {
+            VerticalDivider(modifier = Modifier.fillMaxHeight().padding(horizontal = 12.dp))
+
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     items(worlds, key = { it.world.id }) { row ->
                         WorldRow(
@@ -141,32 +149,44 @@ fun WorldAddressBookScreen(
                         ) { Text("Delete Permanently") }
                     }
                 } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Button(
+                            onClick = { selectedWorld?.let(onSelectWorld) },
+                            enabled = selectedWorld != null,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Connect To World") }
+                        FilledTonalButton(
                             onClick = {
                                 editing = null
                                 showWorldEditor = true
                             },
+                            modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text("New World") }
-                        Button(
+                        OutlinedButton(
                             onClick = { selectedWorld?.let(viewModel::copyWorld) },
                             enabled = selectedWorld != null,
+                            modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text("Copy World") }
-                        Button(
+                        OutlinedButton(
                             onClick = {
                                 editing = selectedWorld
                                 showWorldEditor = true
                             },
                             enabled = selectedWorld != null,
+                            modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text("Edit World") }
-                        Button(
-                            onClick = { selectedWorld?.let(onSelectWorld) },
-                            enabled = selectedWorld != null,
-                        ) { Text("Connect To World") }
-                        Button(
+                        OutlinedButton(
                             onClick = { selectedWorld?.let { deletingWorld = it } },
                             enabled = selectedWorld != null,
-                        ) { Text("Delete") }
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text(
+                            "Delete",
+                            color = if (selectedWorld != null) MaterialTheme.colorScheme.error else Color.Unspecified,
+                        ) }
                     }
                 }
 
@@ -289,28 +309,33 @@ private fun WorldRow(
     onDoubleTap: () -> Unit,
 ) {
     val world = row.world
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
-            .combinedClickable(onClick = onTap, onDoubleClick = onDoubleTap)
-            .padding(vertical = 8.dp, horizontal = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = world.name, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                text = "${world.host}:${world.port}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+                .combinedClickable(onClick = onTap, onDoubleClick = onDoubleTap)
+                .padding(vertical = 14.dp, horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = world.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "${world.host}:${world.port}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            row.lastCharacterName?.let { name ->
+                Text(
+                    text = "Last: $name",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        Text(
-            text = row.lastCharacterName ?: "—",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
@@ -335,13 +360,14 @@ private fun WorldEditorDialog(
         title = { Text(if (initial == null) "New World" else "Edit World") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, singleLine = true)
-                OutlinedTextField(value = host, onValueChange = { host = it }, label = { Text("Host") }, singleLine = true)
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = host, onValueChange = { host = it }, label = { Text("Host") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
                     value = port,
                     onValueChange = { port = it },
                     label = { Text("Port") },
                     singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 GroupSelector(groups = groups, selectedGroupId = groupId, onSelect = { groupId = it })

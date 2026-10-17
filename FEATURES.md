@@ -8,6 +8,9 @@ nothing aspirational.
 - **Multiple simultaneous connections ("tabs")** — connect to several worlds/characters at
   once, each with its own independent scrollback, input history, and reconnect state. Switch
   between them with a tab row; close one without disturbing the others.
+- **Tab cues** — the tab you're in is steady cyan; a background tab that receives new server
+  text blinks orange (all flashing tabs blink together) until you switch to it. A tab that
+  logged in as a saved Character shows that Character's name under the world name.
 - **Address Book** — name, host, and port saved per world, organized into user-created
   Groups (a flat sidebar of folders, plus the built-in All Worlds/Ungrouped views). Select a
   world, then act on it: New/Copy/Edit/Connect/Delete.

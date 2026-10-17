@@ -39,16 +39,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import com.rickd.mushclient.telnet.ConnectionState
 import com.rickd.mushclient.ui.common.SettingsIconButton
 import com.rickd.mushclient.ui.theme.TerminalGreen
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+
+// Same two colors MushTato uses: cyan = the tab you're in, orange blink = unseen activity.
+private val ACTIVE_TAB_COLOR = Color(0xFF4EC9F5)
+private val ACTIVITY_TAB_COLOR = Color(0xFFFFA500)
+private const val FLASH_INTERVAL_MS = 500L
 
 @Composable
 fun SessionScreen(
@@ -190,6 +197,18 @@ private fun TabRow(
     } else {
         tabs.indexOfFirst { it.id == activeConnectionId }.let { if (it == -1) tabs.size else it }
     }
+    // One shared blink clock for every flashing tab, so several blink together instead of
+    // drifting apart. Indefinite until the tab is viewed (same as MushTato); the clock only
+    // runs while at least one tab actually has unseen activity.
+    var flashOn by remember { mutableStateOf(true) }
+    val anyActivity = tabs.any { it.hasUnseenActivity }
+    LaunchedEffect(anyActivity) {
+        flashOn = true
+        while (anyActivity) {
+            delay(FLASH_INTERVAL_MS)
+            flashOn = !flashOn
+        }
+    }
     ScrollableTabRow(
         selectedTabIndex = selectedIndex,
         edgePadding = 0.dp,
@@ -209,11 +228,29 @@ private fun TabRow(
                 selected = !showDraft && tab.id == activeConnectionId,
                 onClick = { onSelectTab(tab.id) },
                 text = {
+                    val isActive = !showDraft && tab.id == activeConnectionId
+                    // Steady cyan for the tab in view; blinking orange (in sync across tabs) for
+                    // a background tab with unseen server text; otherwise the default color.
+                    val labelColor = when {
+                        isActive -> ACTIVE_TAB_COLOR
+                        tab.hasUnseenActivity && flashOn -> ACTIVITY_TAB_COLOR
+                        else -> Color.Unspecified
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
-                        Text(text = tab.label, maxLines = 1)
+                        Column {
+                            Text(text = tab.label, maxLines = 1, color = labelColor)
+                            tab.characterName?.let { name ->
+                                Text(
+                                    text = name,
+                                    maxLines = 1,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = labelColor,
+                                )
+                            }
+                        }
                         if (tab.hasError) {
                             Text(text = "!", color = MaterialTheme.colorScheme.error)
                         }

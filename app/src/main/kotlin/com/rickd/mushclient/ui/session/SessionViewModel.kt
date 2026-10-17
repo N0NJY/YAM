@@ -41,6 +41,10 @@ data class TabMeta(
     val label: String,
     val connectionState: ConnectionState,
     val hasError: Boolean,
+    // Set when the Character auto-login fires; shown as the tab label's second line.
+    val characterName: String? = null,
+    // Server text arrived while this tab wasn't the one in view; cleared on switching to it.
+    val hasUnseenActivity: Boolean = false,
 )
 
 data class SessionScreenState(

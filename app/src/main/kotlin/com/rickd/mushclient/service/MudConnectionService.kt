@@ -178,6 +178,7 @@ class MudConnectionService : LifecycleService() {
 
     fun setActiveConnection(connectionId: Long) {
         _activeConnectionId.value = connectionId
+        _tabs.update { it.withActivityCleared(connectionId) }
     }
 
     /** The only thing that actually removes a tab — a naturally-disconnected one just sits there. */
@@ -186,7 +187,7 @@ class MudConnectionService : LifecycleService() {
         sessions.remove(connectionId)
         _tabs.update { tabs -> tabs.filterNot { it.id == connectionId } }
         if (_activeConnectionId.value == connectionId) {
-            _activeConnectionId.value = _tabs.value.lastOrNull()?.id
+            _tabs.value.lastOrNull()?.id?.let(::setActiveConnection) ?: run { _activeConnectionId.value = null }
         }
         refreshNotification()
         maybeStopIfIdle()
@@ -428,6 +429,7 @@ class MudConnectionService : LifecycleService() {
                             val login = pendingAutoLogin
                             if (login != null) {
                                 pendingAutoLogin = null
+                                _tabs.update { it.withCharacter(id, login.characterName) }
                                 send("connect ${login.characterName} ${login.characterPassword}", echoAs = null)
                             }
                         }
@@ -594,6 +596,7 @@ class MudConnectionService : LifecycleService() {
                 }
 
                 if (visibleLines.isNotEmpty()) {
+                    _tabs.update { it.withActivity(id, _activeConnectionId.value) }
                     val time = LocalTime.now()
                     _uiState.update { state ->
                         state.copy(lines = state.lines + visibleLines.map { stamped(it, state.showTimestamps, time) })

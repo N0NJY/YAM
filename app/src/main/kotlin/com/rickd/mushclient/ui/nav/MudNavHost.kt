@@ -16,9 +16,11 @@ import com.rickd.mushclient.ui.slash.SlashCommandListScreen
 import com.rickd.mushclient.ui.triggers.TriggerListScreen
 import com.rickd.mushclient.ui.worlds.CharacterListScreen
 import com.rickd.mushclient.ui.worlds.WorldAddressBookScreen
+import com.rickd.mushclient.ui.worlds.WorldPropertiesScreen
 
 private const val ROUTE_WORLDS = "worlds"
 private const val ROUTE_CHARACTERS = "characters/{worldId}"
+private const val ROUTE_PROPERTIES = "worldproperties/{worldId}"
 private const val ROUTE_SESSION =
     "session?host={host}&port={port}&charName={charName}&charPass={charPass}&worldId={worldId}&worldName={worldName}"
 private const val ROUTE_SETTINGS = "settings"
@@ -59,11 +61,22 @@ fun MudNavHost() {
         composable(ROUTE_WORLDS) {
             WorldAddressBookScreen(
                 onSelectWorld = { world -> navController.navigate("characters/${world.id}") },
+                onOpenProperties = { world -> navController.navigate("worldproperties/${world.id}") },
                 onConnectManually = { navController.navigate("session") },
                 onOpenSettings = { navController.navigate(ROUTE_SETTINGS) },
                 // Null on the app's true start destination — non-null when reached via a push
                 // (e.g. from Session's "Worlds" button), so there's something to pop back to.
                 onBack = navController.previousBackStackEntry?.let { { navController.popBackStack() } },
+            )
+        }
+        composable(
+            route = ROUTE_PROPERTIES,
+            arguments = listOf(navArgument("worldId") { type = NavType.LongType }),
+        ) { backStackEntry ->
+            WorldPropertiesScreen(
+                worldId = backStackEntry.arguments?.getLong("worldId") ?: 0L,
+                onBack = { navController.popBackStack() },
+                onOpenSettings = { navController.navigate(ROUTE_SETTINGS) },
             )
         }
         composable(

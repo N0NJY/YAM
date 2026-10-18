@@ -2,6 +2,9 @@ package com.rickd.mushclient.telnet
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -21,7 +24,11 @@ import java.nio.charset.Charset
  * interpreted here — a future decoder subscribes to
  * that event without any changes to this class.
  */
-class TelnetClient(private val scope: CoroutineScope) {
+class TelnetClient(
+    private val scope: CoroutineScope,
+    private val nopIntervalMs: Long = NOP_INTERVAL_MS,
+    private val keepAliveTuner: TcpKeepAlive.Tuner? = null,
+) {
 
     // Byte-transparent: never throws mid-decode on a TCP packet boundary, and matches how
     // most classic MUD/MUSH servers emit text.
@@ -31,21 +38,28 @@ class TelnetClient(private val scope: CoroutineScope) {
     private var negotiator = TelnetNegotiator()
 
     private var socket: Socket? = null
+    private var nopJob: Job? = null
     private var output: OutputStream? = null
 
     private val _events = MutableSharedFlow<TelnetEvent>(extraBufferCapacity = 256)
     val events: SharedFlow<TelnetEvent> = _events.asSharedFlow()
 
-    suspend fun connect(host: String, port: Int) {
+    /**
+     * [nopKeepalive] (a per-world opt-in) also sends an `IAC NOP` heartbeat every [nopIntervalMs],
+     * for servers or routers that drop idle connections. TCP keepalive is always on.
+     */
+    suspend fun connect(host: String, port: Int, nopKeepalive: Boolean = false) {
         withContext(Dispatchers.IO) {
             _events.emit(TelnetEvent.StateChanged(ConnectionState.CONNECTING))
             negotiator = TelnetNegotiator()
             try {
                 val sock = Socket()
                 sock.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
+                if (keepAliveTuner != null) TcpKeepAlive.enable(sock, keepAliveTuner) else TcpKeepAlive.enable(sock)
                 socket = sock
                 output = sock.getOutputStream()
                 _events.emit(TelnetEvent.StateChanged(ConnectionState.CONNECTED))
+                if (nopKeepalive) startNopHeartbeat()
                 readLoop(sock)
             } catch (e: IOException) {
                 _events.emit(TelnetEvent.Error("Connection failed: ${e.message}", e))
@@ -130,7 +144,19 @@ class TelnetClient(private val scope: CoroutineScope) {
         closeQuietly()
     }
 
+    private fun startNopHeartbeat() {
+        nopJob?.cancel()
+        nopJob = scope.launch(Dispatchers.IO) {
+            while (true) {
+                delay(nopIntervalMs)
+                writeRawBlocking(NOP_BYTES)
+            }
+        }
+    }
+
     private fun closeQuietly() {
+        nopJob?.cancel()
+        nopJob = null
         try {
             socket?.close()
         } catch (_: IOException) {
@@ -141,6 +167,9 @@ class TelnetClient(private val scope: CoroutineScope) {
 
     companion object {
         private const val CONNECT_TIMEOUT_MS = 10_000
+        const val NOP_INTERVAL_MS = 60_000L
+        private const val NOP = 241
+        val NOP_BYTES = byteArrayOf(IacProcessor.IAC.toByte(), NOP.toByte())
 
         // Just the ones a MUD/MUSH server is likely to actually offer — purely cosmetic,
         // for /debug output; unrecognized options still show fine as a bare number.

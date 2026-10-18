@@ -39,6 +39,19 @@ nothing aspirational.
   apps, with a persistent notification showing connection status (and, with multiple tabs
   open, a per-tab status list).
 
+## World Properties
+
+- **Properties** (in the Address Book's action row) opens a two-pane settings page for the
+  selected world: sections on the left, the section's settings on the right. Changes are held
+  until you tap **Save**; Back or Cancel discards them.
+  - **Basic** — name, host, port and group (the same fields as Edit World, with validation).
+  - **Connection** — **Telnet NOP keepalive**: send an invisible telnet "no operation" every 60
+    seconds, for servers or routers that drop idle connections. Off by default, per world.
+  More sections (SSL, fallback address, proxy, SSH, auto-sends) arrive in later updates.
+- **TCP keepalive is always on** for every connection: a link that dies silently (a router
+  reboot, a dropped Wi-Fi) is noticed in about a minute instead of hanging for hours, and
+  auto-reconnect then takes over.
+
 ## Navigation
 
 - **Settings ("⋮") is reachable from every screen** — including a live terminal — not just

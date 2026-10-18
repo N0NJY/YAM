@@ -114,6 +114,14 @@ the input line. A sample line shows the result as you move the size slider, and 
 update immediately. Keep the terminal on **Monospace** unless you don't mind banners, tables
 and ASCII art losing their alignment.
 
+## World Properties
+
+In the Address Book, select a world and tap **Properties** for its settings page. **Basic** has
+the name, host, port and group. **Connection** has **Telnet NOP keepalive**, an optional
+heartbeat for servers or routers that drop idle connections. Tap **Save** to keep your changes,
+or Back / **Cancel** to throw them away. (TCP keepalive, which spots a silently dead
+connection, is always on and needs no setting.)
+
 ## Triggers
 
 Settings → Triggers lets you react automatically to text the server sends you. Each trigger

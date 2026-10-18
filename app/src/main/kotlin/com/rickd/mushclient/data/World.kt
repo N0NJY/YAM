@@ -22,4 +22,7 @@ data class World(
     val groupId: Long? = null,
     val isDeleted: Boolean = false,
     val lastCharacterId: Long? = null,
+    // Per-world opt-in: send a telnet IAC NOP heartbeat every 60s (see TelnetClient). TCP
+    // keepalive is separate and always on.
+    val nopKeepalive: Boolean = false,
 )

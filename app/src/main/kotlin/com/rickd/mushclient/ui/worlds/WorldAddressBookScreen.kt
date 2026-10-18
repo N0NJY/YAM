@@ -56,6 +56,7 @@ import com.rickd.mushclient.ui.common.SettingsIconButton
 @Composable
 fun WorldAddressBookScreen(
     onSelectWorld: (World) -> Unit,
+    onOpenProperties: (World) -> Unit,
     onConnectManually: () -> Unit,
     onOpenSettings: () -> Unit,
     // Null on the app's true start destination (nothing to go back to). Non-null when this
@@ -179,6 +180,11 @@ fun WorldAddressBookScreen(
                             enabled = selectedWorld != null,
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text("Edit World") }
+                        OutlinedButton(
+                            onClick = { selectedWorld?.let(onOpenProperties) },
+                            enabled = selectedWorld != null,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text("Properties") }
                         OutlinedButton(
                             onClick = { selectedWorld?.let { deletingWorld = it } },
                             enabled = selectedWorld != null,
@@ -383,7 +389,7 @@ private fun WorldEditorDialog(
 }
 
 @Composable
-private fun GroupSelector(
+internal fun GroupSelector(
     groups: List<WorldGroup>,
     selectedGroupId: Long?,
     onSelect: (Long?) -> Unit,

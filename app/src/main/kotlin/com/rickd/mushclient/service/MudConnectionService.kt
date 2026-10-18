@@ -354,7 +354,12 @@ class MudConnectionService : LifecycleService() {
             lastPort = port
             userInitiatedDisconnect = false
             _uiState.update { it.copy(host = host, port = port.toString(), errorMessage = null) }
-            lifecycleScope.launch { telnetClient.connect(host, port) }
+            lifecycleScope.launch {
+                // Per-world setting, read at dial time so an edit in World Properties applies to
+                // the next connect/reconnect without restarting anything.
+                val nop = worldId?.let { worldDao.getById(it) }?.nopKeepalive ?: false
+                telnetClient.connect(host, port, nopKeepalive = nop)
+            }
         }
 
         fun disconnect() {

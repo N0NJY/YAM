@@ -90,9 +90,15 @@ private val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+private val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN nopKeepalive INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 @Database(
     entities = [World::class, MushCharacter::class, Trigger::class, SlashCommand::class, WorldGroup::class],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class MudDatabase : RoomDatabase() {
@@ -111,7 +117,7 @@ abstract class MudDatabase : RoomDatabase() {
                     context.applicationContext,
                     MudDatabase::class.java,
                     "mud_client.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
             }
     }
 }

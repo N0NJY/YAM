@@ -32,6 +32,14 @@ import androidx.compose.material3.TextButton
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.zIndex
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AssistChip
@@ -149,6 +157,7 @@ fun SessionScreen(
                         draftsBeforeHistory.remove(id)
                         listStates.remove(id)
                     },
+                    onMoveTab = viewModel::moveTab,
                     onNewConnection = { draftOverride = true; draftHost = ""; draftPort = "" },
                 )
             }
@@ -209,6 +218,7 @@ private fun TabRow(
     showDraft: Boolean,
     onSelectTab: (Long) -> Unit,
     onCloseTab: (Long) -> Unit,
+    onMoveTab: (Long, Int) -> Unit,
     onNewConnection: () -> Unit,
 ) {
     val selectedIndex = if (showDraft) {
@@ -228,6 +238,26 @@ private fun TabRow(
             flashOn = !flashOn
         }
     }
+    // Long-press a tab, then drag it sideways; it lands where its centre is when released.
+    // Resting positions are measured per tab (in the row's own coordinates), since tab widths
+    // vary with their labels.
+    val bounds = remember { mutableStateMapOf<Long, Pair<Float, Float>>() }
+    var draggingId by remember { mutableStateOf<Long?>(null) }
+    var dragOffset by remember { mutableStateOf(0f) }
+    val currentTabs by rememberUpdatedState(tabs)
+    fun finishDrag(id: Long) {
+        val ids = currentTabs.map { it.id }
+        val from = ids.indexOf(id)
+        val to = dropIndex(
+            lefts = ids.map { bounds[it]?.first ?: 0f },
+            widths = ids.map { bounds[it]?.second ?: 0f },
+            dragged = from,
+            offset = dragOffset,
+        )
+        draggingId = null
+        dragOffset = 0f
+        if (from != -1 && to != from) onMoveTab(id, to)
+    }
     ScrollableTabRow(
         selectedTabIndex = selectedIndex,
         edgePadding = 0.dp,
@@ -243,9 +273,30 @@ private fun TabRow(
         },
     ) {
         tabs.forEach { tab ->
+            val isDragging = draggingId == tab.id
             Tab(
                 selected = !showDraft && tab.id == activeConnectionId,
                 onClick = { onSelectTab(tab.id) },
+                // pointerInput must come before graphicsLayer: it then works in the tab's
+                // resting coordinates, so the drag deltas don't shift as the tab moves.
+                modifier = Modifier
+                    .onGloballyPositioned { bounds[tab.id] = it.positionInParent().x to it.size.width.toFloat() }
+                    .pointerInput(tab.id) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { draggingId = tab.id; dragOffset = 0f },
+                            onDrag = { change, amount ->
+                                change.consume()
+                                dragOffset += amount.x
+                            },
+                            onDragEnd = { finishDrag(tab.id) },
+                            onDragCancel = { draggingId = null; dragOffset = 0f },
+                        )
+                    }
+                    .zIndex(if (isDragging) 1f else 0f)
+                    .graphicsLayer {
+                        translationX = if (isDragging) dragOffset else 0f
+                        alpha = if (isDragging) 0.7f else 1f
+                    },
                 text = {
                     val isActive = !showDraft && tab.id == activeConnectionId
                     // Steady cyan for the tab in view; blinking orange (in sync across tabs) for

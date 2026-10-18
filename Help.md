@@ -35,6 +35,9 @@ screen. Tabs are fully independent — separate scrollback, separate input histo
 connection state.
 
 - Tap a tab to switch to it.
+- **Press and hold** a tab, then drag it left or right to reorder the row; it lands where its
+  middle is when you let go. The order lasts for the session (it isn't saved), and a short
+  nudge or a plain tap never reorders anything.
 - Tap the **×** on a tab to close it. Closing is the *only* thing that removes a tab — if a
   connection drops or you tap Disconnect, the tab stays put showing its disconnected state,
   so you don't lose your place.

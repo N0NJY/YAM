@@ -8,6 +8,9 @@ nothing aspirational.
 - **Multiple simultaneous connections ("tabs")** — connect to several worlds/characters at
   once, each with its own independent scrollback, input history, and reconnect state. Switch
   between them with a tab row; close one without disturbing the others.
+- **Reorderable tabs** — press and hold a tab, then drag it sideways to a new position; the
+  tab lifts and follows your finger and drops where its middle ends up. Session-only: the order
+  isn't remembered after the app closes.
 - **Tab cues** — the tab you're in is steady cyan; a background tab that receives new server
   text blinks orange (all flashing tabs blink together) until you switch to it. A tab that
   logged in as a saved Character shows that Character's name under the world name.

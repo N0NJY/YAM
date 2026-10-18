@@ -176,6 +176,10 @@ class MudConnectionService : LifecycleService() {
         sessions[connectionId]?.setTimestamps(enabled)
     }
 
+    fun moveTab(connectionId: Long, toIndex: Int) {
+        _tabs.update { it.withMoved(connectionId, toIndex) }
+    }
+
     fun setActiveConnection(connectionId: Long) {
         _activeConnectionId.value = connectionId
         _tabs.update { it.withActivityCleared(connectionId) }

@@ -162,6 +162,11 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         service?.setActiveConnection(connectionId)
     }
 
+    /** Session-only: puts the tab at [toIndex] in the tab row. */
+    fun moveTab(connectionId: Long, toIndex: Int) {
+        service?.moveTab(connectionId, toIndex)
+    }
+
     fun closeTab(connectionId: Long) {
         service?.closeConnection(connectionId)
     }

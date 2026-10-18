@@ -20,3 +20,18 @@ fun List<TabMeta>.withActivityCleared(id: Long): List<TabMeta> =
 /** Records which Character the tab logged in as, for the second line of its label. */
 fun List<TabMeta>.withCharacter(id: Long, characterName: String): List<TabMeta> =
     map { if (it.id == id) it.copy(characterName = characterName) else it }
+
+/**
+ * Moves tab [id] so it ends up at [toIndex] (clamped to the list), keeping every other tab's
+ * relative order. Order lives only in memory for the running session — like MushTato's
+ * movable tabs, it is not saved.
+ */
+fun List<TabMeta>.withMoved(id: Long, toIndex: Int): List<TabMeta> {
+    val from = indexOfFirst { it.id == id }
+    if (from == -1) return this
+    val to = toIndex.coerceIn(0, lastIndex)
+    if (to == from) return this
+    val out = toMutableList()
+    out.add(to, out.removeAt(from))
+    return out
+}

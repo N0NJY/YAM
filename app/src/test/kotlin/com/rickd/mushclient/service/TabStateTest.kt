@@ -58,3 +58,36 @@ class TabStateTest {
         assertFalse(out[1].hasUnseenActivity)
     }
 }
+
+class TabMoveTest {
+    private fun tab(id: Long) = TabMeta(id, "W$id", ConnectionState.CONNECTED, hasError = false)
+    private fun ids(l: List<TabMeta>) = l.map { it.id }
+    private val tabs = listOf(tab(1), tab(2), tab(3), tab(4))
+
+    @Test fun movesForwardAndKeepsTheRestInOrder() {
+        assertEquals(listOf(2L, 3L, 1L, 4L), ids(tabs.withMoved(1, 2)))
+        assertEquals(listOf(2L, 3L, 4L, 1L), ids(tabs.withMoved(1, 3)))
+    }
+
+    @Test fun movesBackward() {
+        assertEquals(listOf(4L, 1L, 2L, 3L), ids(tabs.withMoved(4, 0)))
+        assertEquals(listOf(1L, 3L, 2L, 4L), ids(tabs.withMoved(3, 1)))
+    }
+
+    @Test fun movingToTheSamePlaceOrAnUnknownTabChangesNothing() {
+        assertSame(tabs, tabs.withMoved(2, 1))
+        assertSame(tabs, tabs.withMoved(99, 0))
+    }
+
+    @Test fun targetIsClampedIntoTheList() {
+        assertEquals(listOf(2L, 3L, 4L, 1L), ids(tabs.withMoved(1, 50)))
+        assertEquals(listOf(4L, 1L, 2L, 3L), ids(tabs.withMoved(4, -7)))
+    }
+
+    @Test fun movingKeepsEachTabsOwnState() {
+        val marked = tabs.withActivity(3, activeId = 1).withCharacter(3, "Thoran")
+        val moved = marked.withMoved(3, 0)
+        assertEquals("Thoran", moved[0].characterName)
+        assertTrue(moved[0].hasUnseenActivity)
+    }
+}

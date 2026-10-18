@@ -14,10 +14,11 @@ import java.nio.charset.Charset
 
 /**
  * Owns a raw telnet TCP connection: connects, runs the read loop on [Dispatchers.IO],
- * and replies to IAC option negotiation. v1 stance is deliberately simple: refuse every
- * option (WONT/DONT), which is a valid, RFC 854-compliant response and enough for plain
- * line-mode MUD/MUSH output. Subnegotiation blocks (GMCP/MSDP) are parsed and surfaced via
- * [TelnetEvent.Subnegotiation] but not interpreted here — a future decoder subscribes to
+ * and replies to IAC option negotiation via [TelnetNegotiator]: every option is refused
+ * (WONT/DONT) — a valid, RFC 854-compliant response, enough for plain line-mode MUD/MUSH
+ * output — except NAWS (window size) and TERM-TYPE, which are answered. Other subnegotiation
+ * blocks (GMCP/MSDP) are parsed and surfaced via [TelnetEvent.Subnegotiation] but not
+ * interpreted here — a future decoder subscribes to
  * that event without any changes to this class.
  */
 class TelnetClient(private val scope: CoroutineScope) {
@@ -26,6 +27,8 @@ class TelnetClient(private val scope: CoroutineScope) {
     // most classic MUD/MUSH servers emit text.
     private val charset: Charset = Charset.forName("ISO-8859-1")
     private val iacProcessor = IacProcessor()
+    // Per-connection: each connect starts with nothing agreed to (see TelnetNegotiator).
+    private var negotiator = TelnetNegotiator()
 
     private var socket: Socket? = null
     private var output: OutputStream? = null
@@ -36,6 +39,7 @@ class TelnetClient(private val scope: CoroutineScope) {
     suspend fun connect(host: String, port: Int) {
         withContext(Dispatchers.IO) {
             _events.emit(TelnetEvent.StateChanged(ConnectionState.CONNECTING))
+            negotiator = TelnetNegotiator()
             try {
                 val sock = Socket()
                 sock.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
@@ -64,13 +68,14 @@ class TelnetClient(private val scope: CoroutineScope) {
                         }
                         is IacProcessor.RawEvent.Negotiation -> {
                             _events.emit(TelnetEvent.Debug(describeNegotiation(raw.command, raw.option)))
-                            respondToNegotiation(raw.command, raw.option)
+                            sendReplies(negotiator.onNegotiation(raw.command, raw.option))
                         }
                         is IacProcessor.RawEvent.Subnegotiation -> {
                             _events.emit(
                                 TelnetEvent.Debug("SB ${optionName(raw.option)} (${raw.data.size} bytes)"),
                             )
                             _events.emit(TelnetEvent.Subnegotiation(raw.option, raw.data))
+                            sendReplies(negotiator.onSubnegotiation(raw.option, raw.data))
                         }
                     }
                 }
@@ -99,15 +104,11 @@ class TelnetClient(private val scope: CoroutineScope) {
         return "$option ($name)"
     }
 
-    private fun respondToNegotiation(command: Int, option: Int) {
-        val reply = when (command) {
-            IacProcessor.WILL, IacProcessor.WONT ->
-                byteArrayOf(IacProcessor.IAC.toByte(), IacProcessor.DONT.toByte(), option.toByte())
-            IacProcessor.DO, IacProcessor.DONT ->
-                byteArrayOf(IacProcessor.IAC.toByte(), IacProcessor.WONT.toByte(), option.toByte())
-            else -> return
+    private suspend fun sendReplies(replies: List<TelnetNegotiator.Reply>) {
+        for (reply in replies) {
+            writeRawBlocking(reply.bytes)
+            _events.emit(TelnetEvent.Debug("-> ${reply.description}"))
         }
-        writeRawBlocking(reply)
     }
 
     suspend fun send(line: String) {

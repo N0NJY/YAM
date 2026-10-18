@@ -54,12 +54,19 @@ nothing aspirational.
 
 - Raw telnet over TCP, byte-transparent (ISO-8859-1) so nothing is lost decoding arbitrary
   server output.
-- Telnet IAC option negotiation: responds WONT/DONT to every offered option — a valid,
-  spec-compliant stance that keeps plain line-mode text working everywhere without
-  pretending to support options (MXP, GMCP, MSSP, etc.) that aren't actually implemented yet.
-- Subnegotiation blocks are parsed and surfaced (for future protocol work) but not yet
+- Telnet IAC option negotiation: two options are supported, the rest are refused with
+  WONT/DONT — a valid, spec-compliant stance that keeps plain line-mode text working everywhere
+  without pretending to support options (MXP, GMCP, MSSP, etc.) that aren't implemented yet.
+  - **NAWS** (window size): when a server asks, YAM reports a fixed 80 x 24 — the same choice
+    MushTato and Potato make — so servers wrap at 80 columns and banners and tables stay lined
+    up whatever your screen width or font size.
+  - **TERM-TYPE**: when asked, YAM identifies itself as `YAM`.
+  Each option is agreed to once per connection, so a server repeating its request can't start
+  a loop.
+- Other subnegotiation blocks are parsed and surfaced (for future protocol work) but not yet
   interpreted.
-- `/debug` toggles a live view of the raw negotiation traffic, for diagnosing a fussy server.
+- `/debug` toggles a live view of the raw negotiation traffic — including YAM's own replies,
+  shown as `-> WILL NAWS` and so on — for diagnosing a fussy server.
 
 ## Saving a log
 

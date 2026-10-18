@@ -141,7 +141,8 @@ terminal, so you're never more than one tap away from it.
 ## Troubleshooting
 
 - **A world isn't responding as expected** — try `/debug on` to see the raw telnet
-  negotiation, which can reveal a server offering an option YAM doesn't yet act on.
+  negotiation and YAM's replies, which can reveal a server offering an option YAM doesn't yet
+  act on (YAM answers only NAWS and TERM-TYPE; everything else is politely refused).
 - **A connection keeps dropping** — check Auto-reconnect is on in Settings; YAM will keep
   retrying until you disconnect that tab manually.
 - **Lost track of a tab** — the tab stays open even after a disconnect; check the tab row

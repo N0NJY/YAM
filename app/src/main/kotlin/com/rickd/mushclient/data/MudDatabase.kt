@@ -96,12 +96,28 @@ private val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+private val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN useSsl INTEGER NOT NULL DEFAULT 0")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS ssl_pins (
+                hostPort TEXT NOT NULL,
+                fingerprint TEXT NOT NULL,
+                PRIMARY KEY(hostPort)
+            )
+            """.trimIndent(),
+        )
+    }
+}
+
 @Database(
-    entities = [World::class, MushCharacter::class, Trigger::class, SlashCommand::class, WorldGroup::class],
-    version = 6,
+    entities = [World::class, MushCharacter::class, Trigger::class, SlashCommand::class, WorldGroup::class, SslPin::class],
+    version = 7,
     exportSchema = false,
 )
 abstract class MudDatabase : RoomDatabase() {
+    abstract fun sslPinDao(): SslPinDao
     abstract fun worldDao(): WorldDao
     abstract fun characterDao(): CharacterDao
     abstract fun triggerDao(): TriggerDao
@@ -117,7 +133,7 @@ abstract class MudDatabase : RoomDatabase() {
                     context.applicationContext,
                     MudDatabase::class.java,
                     "mud_client.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build().also { instance = it }
             }
     }
 }

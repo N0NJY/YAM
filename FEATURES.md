@@ -39,6 +39,23 @@ nothing aspirational.
   apps, with a persistent notification showing connection status (and, with multiple tabs
   open, a per-tab status list).
 
+## SSL/TLS
+
+- Turn on **Use SSL/TLS** in a world's Properties (Connection section) to encrypt its
+  connection. It is implicit TLS on the world's own port — use the port the server offers for
+  SSL, which is usually not its plain-telnet port.
+- **Trust on first use.** MU* servers almost always use self-signed certificates, so there is no
+  certificate authority to check. Instead YAM remembers the server's certificate (its SHA-256
+  fingerprint) the first time you connect — it tells you, in yellow, which fingerprint it
+  trusted — and checks it on every later connection, like SSH's known hosts. Android's own
+  certificate store is never used or changed.
+- **A changed certificate is refused**, during the handshake, before any of your session is
+  sent. The message shows the saved and the new fingerprint and names the command to run:
+  `/ssl-forget host:port`. Auto-reconnect pauses (retrying could never succeed). If the
+  change is expected, forget the saved certificate and connect again to trust the new one.
+- Slash commands now work even when a tab is not connected, so `/ssl-forget`, `/reconnect` and
+  `/connect` are always reachable. Plain text typed while disconnected isn't sent; YAM says so.
+
 ## World Properties
 
 - **Properties** (in the Address Book's action row) opens a two-pane settings page for the
@@ -160,6 +177,7 @@ always sends `/foo` literally.
 | `/connect <world-name-or-host:port>` | Redial this tab to a different address |
 | `/debug [on\|off]` | Toggle (or set) a live view of raw telnet negotiation traffic |
 | `/timestamps [on\|off]` | Toggle (or set) a `[HH:MM:SS]` prefix on new scrollback lines for this tab |
+| `/ssl-forget <host:port>` | Forget the saved SSL certificate for that host and port (the port is required) |
 
 **Custom, user-defined:** per world or Global, `/name` plus a pattern (wildcard/regex/
 contains) matched against the typed arguments, expanding into one or more lines sent to the

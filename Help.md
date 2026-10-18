@@ -98,6 +98,7 @@ commands first, then any custom ones you've defined, before being sent to the se
 | `/connect example.com:4201` | Redial this tab to a raw host:port |
 | `/debug on` | Show raw telnet negotiation traffic (for troubleshooting a server) |
 | `/timestamps` | Turn `[HH:MM:SS]` timestamps on new lines on or off for this tab (`/timestamps on`, `/timestamps off`) |
+| `/ssl-forget host:port` | Forget the saved SSL certificate for a world, e.g. `/ssl-forget mush.example.com:4443` |
 
 Typed a real command that happens to start with `/` and don't want it intercepted? Start it
 with `//` instead — `//foo` always sends `/foo` to the server untouched.
@@ -113,6 +114,16 @@ In **Settings → Fonts** you can change the font and size of the scrollback and
 the input line. A sample line shows the result as you move the size slider, and open tabs
 update immediately. Keep the terminal on **Monospace** unless you don't mind banners, tables
 and ASCII art losing their alignment.
+
+## SSL (encrypted connections)
+
+Open a world's **Properties → Connection** and turn on **Use SSL/TLS**, with the port your server
+offers for SSL. The first time you connect, YAM remembers the server's certificate and says so
+in yellow. From then on it checks that the same certificate is presented; if it ever changes, YAM
+refuses to connect and shows both fingerprints. If you know why it changed (the server's
+certificate was renewed or replaced), type `/ssl-forget host:port` and connect again to trust
+the new one. If you don't know why, don't — a changed certificate can also mean someone is
+intercepting the connection.
 
 ## World Properties
 
@@ -151,6 +162,8 @@ terminal, so you're never more than one tap away from it.
 - **A world isn't responding as expected** — try `/debug on` to see the raw telnet
   negotiation and YAM's replies, which can reveal a server offering an option YAM doesn't yet
   act on (YAM answers only NAWS and TERM-TYPE; everything else is politely refused).
+- **"The SSL certificate ... has CHANGED"** — see *SSL* above. Use `/ssl-forget host:port` only
+  if you expected the change.
 - **A connection keeps dropping** — check Auto-reconnect is on in Settings; YAM will keep
   retrying until you disconnect that tab manually.
 - **Lost track of a tab** — the tab stays open even after a disconnect; check the tab row

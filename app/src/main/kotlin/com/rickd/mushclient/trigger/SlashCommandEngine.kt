@@ -30,6 +30,8 @@ sealed class BuiltInAction {
     data class SetDebug(val enabled: Boolean?) : BuiltInAction()
     /** null means toggle rather than set an explicit state. */
     data class SetTimestamps(val enabled: Boolean?) : BuiltInAction()
+    /** Forget the saved SSL certificate for [host]:[port], so the next connect trusts afresh. */
+    data class SslForget(val host: String, val port: Int) : BuiltInAction()
 }
 
 /**
@@ -92,12 +94,29 @@ object SlashCommandEngine {
         "connect" -> args.trim().takeIf { it.isNotEmpty() }
             ?.let { SlashResolution.Action(BuiltInAction.Connect(it)) }
         "debug" -> SlashResolution.Action(BuiltInAction.SetDebug(parseOnOff(args)))
+        "ssl-forget" -> parseHostColonPort(args)
+            ?.let { (host, port) -> SlashResolution.Action(BuiltInAction.SslForget(host, port)) }
+            ?: SlashResolution.SystemMessage("Usage: /ssl-forget host:port")
         "timestamps" -> when {
             args.isBlank() -> SlashResolution.Action(BuiltInAction.SetTimestamps(null))
             parseOnOff(args) != null -> SlashResolution.Action(BuiltInAction.SetTimestamps(parseOnOff(args)))
             else -> SlashResolution.SystemMessage("Usage: /timestamps [on|off]")
         }
         else -> null
+    }
+
+    /**
+     * Strictly `host:port` (the port is required — unlike SSH there is no standard default for a
+     * MU*). Splits at the last colon so a bracketed IPv6 literal like `[::1]:4443` works.
+     */
+    fun parseHostColonPort(args: String): Pair<String, Int>? {
+        val text = args.trim()
+        val colon = text.lastIndexOf(':')
+        if (colon <= 0) return null
+        val host = text.substring(0, colon).removeSurrounding("[", "]").trim()
+        val port = text.substring(colon + 1).trim().toIntOrNull() ?: return null
+        if (host.isEmpty() || port !in 1..65535) return null
+        return host to port
     }
 
     private fun formatTime(args: String): String {

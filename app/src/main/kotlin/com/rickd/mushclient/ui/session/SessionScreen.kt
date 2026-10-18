@@ -538,7 +538,9 @@ private fun ColumnScope.ActiveSession(
             }
         },
         textStyle = LocalTextStyle.current.copy(fontFamily = inputFont.toFontFamily(), fontSize = inputFontSize.sp),
-        enabled = uiState.connectionState == ConnectionState.CONNECTED,
+        // Always usable: slash commands (/reconnect, /connect, /ssl-forget ...) are needed exactly
+        // when the tab is NOT connected. Plain text typed then is explained, not silently lost.
+        enabled = true,
         canNavigateOlder = uiState.history.isNotEmpty() && historyIndex < uiState.history.lastIndex,
         canNavigateNewer = historyIndex >= 0,
         onNavigateOlder = {

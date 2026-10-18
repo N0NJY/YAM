@@ -21,6 +21,9 @@ import com.rickd.mushclient.R
 import com.rickd.mushclient.ansi.AnsiParser
 import com.rickd.mushclient.data.AppPreferences
 import com.rickd.mushclient.data.MudDatabase
+import com.rickd.mushclient.data.RoomPinStore
+import com.rickd.mushclient.data.SslPinDao
+import com.rickd.mushclient.telnet.CertificatePinning
 import com.rickd.mushclient.data.SlashCommand
 import com.rickd.mushclient.data.SlashCommandDao
 import com.rickd.mushclient.data.Trigger
@@ -76,6 +79,7 @@ class MudConnectionService : LifecycleService() {
     private lateinit var triggerDao: TriggerDao
     private lateinit var slashCommandDao: SlashCommandDao
     private lateinit var worldDao: WorldDao
+    private lateinit var sslPinDao: SslPinDao
 
     private val sessions = mutableMapOf<Long, ConnectionSession>()
     private var nextConnectionId = 1L
@@ -105,6 +109,7 @@ class MudConnectionService : LifecycleService() {
         triggerDao = MudDatabase.get(applicationContext).triggerDao()
         slashCommandDao = MudDatabase.get(applicationContext).slashCommandDao()
         worldDao = MudDatabase.get(applicationContext).worldDao()
+        sslPinDao = MudDatabase.get(applicationContext).sslPinDao()
         createNotificationChannel()
     }
 
@@ -279,7 +284,7 @@ class MudConnectionService : LifecycleService() {
      * [lifecycleScope]/DAOs/`applicationContext` directly rather than needing its own.
      */
     private inner class ConnectionSession(val id: Long, initialWorldId: Long?) {
-        val telnetClient = TelnetClient(lifecycleScope)
+        val telnetClient = TelnetClient(lifecycleScope, pinStore = RoomPinStore(sslPinDao))
         val ansiParser = AnsiParser()
         val pendingLine = StringBuilder()
 
@@ -288,6 +293,9 @@ class MudConnectionService : LifecycleService() {
         var worldId: Long? = initialWorldId
         var userInitiatedDisconnect = false
         var debugEnabled = false
+        // Set by a fatal TelnetEvent.Error (a changed SSL certificate): the next disconnect must
+        // not be followed by an auto-reconnect, which could never succeed.
+        private var lastErrorFatal = false
         var pendingAutoLogin: LoginCredentials? = null
         private var reconnectJob: Job? = null
         private var triggerObserverJob: Job? = null
@@ -353,12 +361,18 @@ class MudConnectionService : LifecycleService() {
             lastHost = host
             lastPort = port
             userInitiatedDisconnect = false
+            lastErrorFatal = false
             _uiState.update { it.copy(host = host, port = port.toString(), errorMessage = null) }
             lifecycleScope.launch {
                 // Per-world setting, read at dial time so an edit in World Properties applies to
                 // the next connect/reconnect without restarting anything.
-                val nop = worldId?.let { worldDao.getById(it) }?.nopKeepalive ?: false
-                telnetClient.connect(host, port, nopKeepalive = nop)
+                val world = worldId?.let { worldDao.getById(it) }
+                telnetClient.connect(
+                    host,
+                    port,
+                    nopKeepalive = world?.nopKeepalive ?: false,
+                    useSsl = world?.useSsl ?: false,
+                )
             }
         }
 
@@ -390,8 +404,8 @@ class MudConnectionService : LifecycleService() {
             if (text.isEmpty()) return
             if (echoAs != null) recordEcho(echoAs)
             when (val resolution = SlashCommandEngine.resolve(text, currentSlashCommands)) {
-                is SlashResolution.Literal -> transmit(resolution.text)
-                is SlashResolution.Expanded -> resolution.lines.forEach(::transmit)
+                is SlashResolution.Literal -> transmitIfConnected(listOf(resolution.text))
+                is SlashResolution.Expanded -> transmitIfConnected(resolution.lines)
                 is SlashResolution.SystemMessage -> printSystemMessage(resolution.text)
                 is SlashResolution.Action -> performAction(resolution.action)
             }
@@ -405,6 +419,15 @@ class MudConnectionService : LifecycleService() {
                     // instead of listing it twice.
                     history = (listOf(echoAs) + it.history.filterNot { cmd -> cmd == echoAs }).take(MAX_HISTORY),
                 )
+            }
+        }
+
+        /** Anything bound for the server needs a live connection; say so instead of dropping it silently. */
+        private fun transmitIfConnected(lines: List<String>) {
+            if (_uiState.value.connectionState == ConnectionState.CONNECTED) {
+                lines.forEach(::transmit)
+            } else {
+                printSystemMessage(NOT_CONNECTED_NOTE)
             }
         }
 
@@ -426,7 +449,7 @@ class MudConnectionService : LifecycleService() {
                                 pendingDial = null
                                 dialTarget(dial)
                             }
-                            !userInitiatedDisconnect && appPreferences.autoReconnect.value && lastHost != null ->
+                            !userInitiatedDisconnect && !lastErrorFatal && appPreferences.autoReconnect.value && lastHost != null ->
                                 scheduleReconnect()
                             else -> _uiState.update { it.copy(connectionState = ConnectionState.DISCONNECTED) }
                         }
@@ -444,7 +467,11 @@ class MudConnectionService : LifecycleService() {
                         }
                     }
                 }
-                is TelnetEvent.Error -> _uiState.update { it.copy(errorMessage = event.message) }
+                is TelnetEvent.Error -> {
+                    if (event.fatal) lastErrorFatal = true
+                    _uiState.update { it.copy(errorMessage = event.message) }
+                }
+                is TelnetEvent.Notice -> printSystemMessage(event.message)
                 is TelnetEvent.Subnegotiation -> Unit // not interpreted yet (GMCP/MSDP land later)
                 is TelnetEvent.Debug -> if (debugEnabled) printSystemMessage(event.message)
             }
@@ -536,6 +563,14 @@ class MudConnectionService : LifecycleService() {
                 BuiltInAction.Disconnect -> disconnect()
                 is BuiltInAction.Connect -> connectToAddress(action.address)
                 is BuiltInAction.SetTimestamps -> setTimestamps(action.enabled)
+                is BuiltInAction.SslForget -> lifecycleScope.launch {
+                    val key = CertificatePinning.key(action.host, action.port)
+                    val removed = withContext(Dispatchers.IO) { sslPinDao.delete(key) } > 0
+                    printSystemMessage(
+                        if (removed) "Forgot the saved SSL certificate for $key. The next connection will trust whatever it sees."
+                        else "No saved SSL certificate for $key.",
+                    )
+                }
                 is BuiltInAction.SetDebug -> {
                     debugEnabled = action.enabled ?: !debugEnabled
                     printSystemMessage(if (debugEnabled) "Debug: ON" else "Debug: OFF")
@@ -632,6 +667,8 @@ class MudConnectionService : LifecycleService() {
         private const val CHANNEL_ID = "mud_session"
         private const val NOTIFICATION_ID = 1
         private const val MAX_HISTORY = 20
+        private const val NOT_CONNECTED_NOTE =
+            "Not connected, so that wasn't sent. Tap Connect, or use /reconnect or /connect."
         private const val RECONNECT_DELAY_MS = 30_000L
         const val EXTRA_HOST = "host"
         const val EXTRA_PORT = "port"

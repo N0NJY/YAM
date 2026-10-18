@@ -25,4 +25,7 @@ data class World(
     // Per-world opt-in: send a telnet IAC NOP heartbeat every 60s (see TelnetClient). TCP
     // keepalive is separate and always on.
     val nopKeepalive: Boolean = false,
+    // Per-world opt-in: implicit TLS on this world's port, with the server's certificate pinned
+    // on first use (see telnet/CertificatePinning.kt).
+    val useSsl: Boolean = false,
 )

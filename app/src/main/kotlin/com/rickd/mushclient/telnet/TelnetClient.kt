@@ -14,6 +14,9 @@ import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.charset.Charset
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSocket
+import javax.net.ssl.TrustManager
 
 /**
  * Owns a raw telnet TCP connection: connects, runs the read loop on [Dispatchers.IO],
@@ -28,6 +31,9 @@ class TelnetClient(
     private val scope: CoroutineScope,
     private val nopIntervalMs: Long = NOP_INTERVAL_MS,
     private val keepAliveTuner: TcpKeepAlive.Tuner? = null,
+    private val pinStore: PinStore? = null,
+    // How a socket is actually closed; a seam so tests can observe which thread does it.
+    private val closeSocket: (Socket) -> Unit = { it.close() },
 ) {
 
     // Byte-transparent: never throws mid-decode on a TCP packet boundary, and matches how
@@ -48,7 +54,7 @@ class TelnetClient(
      * [nopKeepalive] (a per-world opt-in) also sends an `IAC NOP` heartbeat every [nopIntervalMs],
      * for servers or routers that drop idle connections. TCP keepalive is always on.
      */
-    suspend fun connect(host: String, port: Int, nopKeepalive: Boolean = false) {
+    suspend fun connect(host: String, port: Int, nopKeepalive: Boolean = false, useSsl: Boolean = false) {
         withContext(Dispatchers.IO) {
             _events.emit(TelnetEvent.StateChanged(ConnectionState.CONNECTING))
             negotiator = TelnetNegotiator()
@@ -56,16 +62,48 @@ class TelnetClient(
                 val sock = Socket()
                 sock.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
                 if (keepAliveTuner != null) TcpKeepAlive.enable(sock, keepAliveTuner) else TcpKeepAlive.enable(sock)
-                socket = sock
-                output = sock.getOutputStream()
+                val active = if (useSsl) wrapInTls(sock, host, port) else sock
+                socket = active
+                output = active.getOutputStream()
                 _events.emit(TelnetEvent.StateChanged(ConnectionState.CONNECTED))
                 if (nopKeepalive) startNopHeartbeat()
-                readLoop(sock)
+                readLoop(active)
             } catch (e: IOException) {
-                _events.emit(TelnetEvent.Error("Connection failed: ${e.message}", e))
+                val changed = generateSequence<Throwable>(e) { it.cause }.filterIsInstance<CertificateChangedException>().firstOrNull()
+                if (changed != null) {
+                    _events.emit(TelnetEvent.Error(CertificatePinning.mismatchMessage(changed), e, fatal = true))
+                } else {
+                    _events.emit(TelnetEvent.Error("Connection failed: ${e.message}", e))
+                }
                 _events.emit(TelnetEvent.StateChanged(ConnectionState.DISCONNECTED))
+                closeQuietly()
             }
         }
+    }
+
+    /**
+     * Implicit TLS over the already-connected [raw] socket (the server expects TLS from the first
+     * byte, on a dedicated port). The certificate is checked by [PinningTrustManager] inside the
+     * handshake; a changed one surfaces here as an IOException caused by
+     * [CertificateChangedException].
+     */
+    private fun wrapInTls(raw: Socket, host: String, port: Int): Socket {
+        val store = pinStore ?: throw IOException("SSL is not available: no certificate store.")
+        val trust = PinningTrustManager(host, port, store) { fingerprint ->
+            _events.tryEmit(
+                TelnetEvent.Notice(
+                    "[SSL] Trusted a new certificate for ${CertificatePinning.key(host, port)} " +
+                        "(SHA-256 $fingerprint). It will be checked on every future connection.",
+                ),
+            )
+        }
+        val context = SSLContext.getInstance("TLS").apply { init(null, arrayOf<TrustManager>(trust), null) }
+        val tls = context.socketFactory.createSocket(raw, host, port, true) as SSLSocket
+        // A server that accepts the connection but never answers the handshake must not hang us.
+        tls.soTimeout = HANDSHAKE_TIMEOUT_MS
+        tls.startHandshake()
+        tls.soTimeout = 0
+        return tls
     }
 
     private suspend fun readLoop(sock: Socket) {
@@ -140,8 +178,15 @@ class TelnetClient(
         }
     }
 
+    /**
+     * Safe to call from the main thread. The socket is detached at once, so nothing else can use
+     * it, but *closed* on an IO thread: closing an SSLSocket sends a TLS close message over the
+     * network, which Android forbids on the main thread (NetworkOnMainThreadException — this
+     * crashed the app on Disconnect before the close was moved off it).
+     */
     fun disconnect() {
-        closeQuietly()
+        val sock = detachSocket() ?: return
+        scope.launch(Dispatchers.IO) { runCatching { closeSocket(sock) } }
     }
 
     private fun startNopHeartbeat() {
@@ -154,19 +199,24 @@ class TelnetClient(
         }
     }
 
+    /** For callers already on an IO thread (the read loop's cleanup, a failed connect). */
     private fun closeQuietly() {
+        val sock = detachSocket() ?: return
+        runCatching { closeSocket(sock) }
+    }
+
+    private fun detachSocket(): Socket? {
         nopJob?.cancel()
         nopJob = null
-        try {
-            socket?.close()
-        } catch (_: IOException) {
-        }
+        val sock = socket
         socket = null
         output = null
+        return sock
     }
 
     companion object {
         private const val CONNECT_TIMEOUT_MS = 10_000
+        private const val HANDSHAKE_TIMEOUT_MS = 10_000
         const val NOP_INTERVAL_MS = 60_000L
         private const val NOP = 241
         val NOP_BYTES = byteArrayOf(IacProcessor.IAC.toByte(), NOP.toByte())

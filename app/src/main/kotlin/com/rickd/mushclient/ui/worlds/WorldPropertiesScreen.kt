@@ -90,6 +90,7 @@ private fun PropertiesForm(
     var port by remember(world.id) { mutableStateOf(world.port.toString()) }
     var groupId by remember(world.id) { mutableStateOf(world.groupId) }
     var nopKeepalive by remember(world.id) { mutableStateOf(world.nopKeepalive) }
+    var useSsl by remember(world.id) { mutableStateOf(world.useSsl) }
 
     val error = validateWorldBasics(name, host, port)
 
@@ -154,6 +155,24 @@ private fun PropertiesForm(
                     }
                     PropertiesSection.CONNECTION -> {
                         Row(
+                            modifier = Modifier.fillMaxWidth().clickable { useSsl = !useSsl },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                Text("Use SSL/TLS")
+                                Text(
+                                    text = "Encrypt the connection. Use the port your server offers for SSL " +
+                                        "(it is usually a different port from plain telnet). The server's " +
+                                        "certificate is remembered the first time you connect; if it later " +
+                                        "changes, YAM refuses to connect until you type /ssl-forget host:port.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(checked = useSsl, onCheckedChange = { useSsl = it })
+                        }
+                        Row(
                             modifier = Modifier.fillMaxWidth().clickable { nopKeepalive = !nopKeepalive },
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
@@ -191,6 +210,7 @@ private fun PropertiesForm(
                             port = port.trim().toInt(),
                             groupId = groupId,
                             nopKeepalive = nopKeepalive,
+                            useSsl = useSsl,
                         ),
                     )
                 },

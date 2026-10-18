@@ -91,8 +91,11 @@ private fun PropertiesForm(
     var groupId by remember(world.id) { mutableStateOf(world.groupId) }
     var nopKeepalive by remember(world.id) { mutableStateOf(world.nopKeepalive) }
     var useSsl by remember(world.id) { mutableStateOf(world.useSsl) }
+    var host2 by remember(world.id) { mutableStateOf(world.host2) }
+    var port2 by remember(world.id) { mutableStateOf(if (world.port2 > 0) world.port2.toString() else "") }
+    var useSsl2 by remember(world.id) { mutableStateOf(world.useSsl2) }
 
-    val error = validateWorldBasics(name, host, port)
+    val error = validateWorldBasics(name, host, port) ?: validateFallback(host2, port2)
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
@@ -188,6 +191,37 @@ private fun PropertiesForm(
                             }
                             Switch(checked = nopKeepalive, onCheckedChange = { nopKeepalive = it })
                         }
+                        Text("Fallback address", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = "Optional. If the main address can't be reached, YAM tries this one. It is " +
+                                "tried only after the main address fails, on every connect, and needs both a " +
+                                "host and a port. It applies when you connect to this world's own address.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        OutlinedTextField(
+                            value = host2,
+                            onValueChange = { host2 = it },
+                            label = { Text("Fallback host") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = port2,
+                            onValueChange = { port2 = it },
+                            label = { Text("Fallback port") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable { useSsl2 = !useSsl2 },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("Use SSL/TLS for the fallback")
+                            Switch(checked = useSsl2, onCheckedChange = { useSsl2 = it })
+                        }
                         Text(
                             text = "YAM also always uses TCP keepalive, so a connection that dies " +
                                 "silently is noticed within about a minute.",
@@ -211,6 +245,9 @@ private fun PropertiesForm(
                             groupId = groupId,
                             nopKeepalive = nopKeepalive,
                             useSsl = useSsl,
+                            host2 = host2.trim(),
+                            port2 = port2.trim().toIntOrNull() ?: 0,
+                            useSsl2 = useSsl2,
                         ),
                     )
                 },

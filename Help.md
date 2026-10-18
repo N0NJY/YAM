@@ -115,6 +115,13 @@ the input line. A sample line shows the result as you move the size slider, and 
 update immediately. Keep the terminal on **Monospace** unless you don't mind banners, tables
 and ASCII art losing their alignment.
 
+## Fallback address
+
+In **Properties → Connection**, a world can have a fallback host and port. If the main address
+can't be reached, YAM connects to the fallback instead and prints which address failed and why.
+The main address is always tried first on every connect, so once it is back you are back on it.
+Fill in both the host and the port, or leave both empty.
+
 ## SSL (encrypted connections)
 
 Open a world's **Properties → Connection** and turn on **Use SSL/TLS**, with the port your server

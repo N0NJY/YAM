@@ -24,6 +24,8 @@ import com.rickd.mushclient.data.MudDatabase
 import com.rickd.mushclient.data.RoomPinStore
 import com.rickd.mushclient.data.SslPinDao
 import com.rickd.mushclient.telnet.CertificatePinning
+import com.rickd.mushclient.telnet.ConnectionTarget
+import com.rickd.mushclient.telnet.connectionTargets
 import com.rickd.mushclient.data.SlashCommand
 import com.rickd.mushclient.data.SlashCommandDao
 import com.rickd.mushclient.data.Trigger
@@ -367,12 +369,15 @@ class MudConnectionService : LifecycleService() {
                 // Per-world setting, read at dial time so an edit in World Properties applies to
                 // the next connect/reconnect without restarting anything.
                 val world = worldId?.let { worldDao.getById(it) }
-                telnetClient.connect(
-                    host,
-                    port,
-                    nopKeepalive = world?.nopKeepalive ?: false,
-                    useSsl = world?.useSsl ?: false,
-                )
+                val primary = ConnectionTarget(host, port, world?.useSsl ?: false)
+                // The fallback belongs to the world's own address: if the player edited the
+                // host or port in the connection bar to dial somewhere else, it doesn't apply.
+                val targets = if (world != null && host == world.host && port == world.port) {
+                    connectionTargets(primary, world.host2, world.port2, world.useSsl2)
+                } else {
+                    listOf(primary)
+                }
+                telnetClient.connect(targets, nopKeepalive = world?.nopKeepalive ?: false)
             }
         }
 

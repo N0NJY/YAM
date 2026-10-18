@@ -50,35 +50,92 @@ class TelnetClient(
     private val _events = MutableSharedFlow<TelnetEvent>(extraBufferCapacity = 256)
     val events: SharedFlow<TelnetEvent> = _events.asSharedFlow()
 
+    /** Single-address connect; see the list form below. */
+    suspend fun connect(host: String, port: Int, nopKeepalive: Boolean = false, useSsl: Boolean = false) =
+        connect(listOf(ConnectionTarget(host, port, useSsl)), nopKeepalive)
+
     /**
+     * Tries each of [targets] in order and uses the first that connects (TCP, then TLS if that
+     * target asks for it). Each call starts again from the first target, so a primary that has
+     * come back is always preferred over a fallback.
+     *
      * [nopKeepalive] (a per-world opt-in) also sends an `IAC NOP` heartbeat every [nopIntervalMs],
      * for servers or routers that drop idle connections. TCP keepalive is always on.
      */
-    suspend fun connect(host: String, port: Int, nopKeepalive: Boolean = false, useSsl: Boolean = false) {
+    suspend fun connect(targets: List<ConnectionTarget>, nopKeepalive: Boolean = false) {
         withContext(Dispatchers.IO) {
             _events.emit(TelnetEvent.StateChanged(ConnectionState.CONNECTING))
             negotiator = TelnetNegotiator()
-            try {
-                val sock = Socket()
-                sock.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
-                if (keepAliveTuner != null) TcpKeepAlive.enable(sock, keepAliveTuner) else TcpKeepAlive.enable(sock)
-                val active = if (useSsl) wrapInTls(sock, host, port) else sock
+            val failures = mutableListOf<Pair<ConnectionTarget, IOException>>()
+            for (target in targets) {
+                val active = try {
+                    openSocket(target)
+                } catch (e: IOException) {
+                    failures += target to e
+                    continue
+                }
                 socket = active
                 output = active.getOutputStream()
+                announceFallbackUse(target, failures)
                 _events.emit(TelnetEvent.StateChanged(ConnectionState.CONNECTED))
                 if (nopKeepalive) startNopHeartbeat()
                 readLoop(active)
-            } catch (e: IOException) {
-                val changed = generateSequence<Throwable>(e) { it.cause }.filterIsInstance<CertificateChangedException>().firstOrNull()
-                if (changed != null) {
-                    _events.emit(TelnetEvent.Error(CertificatePinning.mismatchMessage(changed), e, fatal = true))
-                } else {
-                    _events.emit(TelnetEvent.Error("Connection failed: ${e.message}", e))
-                }
-                _events.emit(TelnetEvent.StateChanged(ConnectionState.DISCONNECTED))
-                closeQuietly()
+                return@withContext
+            }
+            reportConnectFailure(failures)
+        }
+    }
+
+    /** Opens one target; on any failure nothing is left open. */
+    private fun openSocket(target: ConnectionTarget): Socket {
+        val raw = Socket()
+        try {
+            raw.connect(InetSocketAddress(target.host, target.port), CONNECT_TIMEOUT_MS)
+            if (keepAliveTuner != null) TcpKeepAlive.enable(raw, keepAliveTuner) else TcpKeepAlive.enable(raw)
+            return if (target.useSsl) wrapInTls(raw, target.host, target.port) else raw
+        } catch (e: Throwable) {
+            runCatching { raw.close() }
+            throw e
+        }
+    }
+
+    private fun changedCertificate(e: Throwable): CertificateChangedException? =
+        generateSequence(e) { it.cause }.filterIsInstance<CertificateChangedException>().firstOrNull()
+
+    private fun reasonFor(e: IOException): String =
+        if (changedCertificate(e) != null) "its SSL certificate changed" else friendlyReason(e)
+
+    /** Tells the player a fallback was used (and why), and never lets a refused certificate go unmentioned. */
+    private suspend fun announceFallbackUse(target: ConnectionTarget, failures: List<Pair<ConnectionTarget, IOException>>) {
+        if (failures.isEmpty()) return
+        val why = failures.joinToString("; ") { (t, e) -> "${t.label} (${reasonFor(e)})" }
+        _events.emit(TelnetEvent.Notice("[Fallback] Couldn't connect to $why. Connected to the fallback address ${target.label} instead."))
+        failures.mapNotNull { changedCertificate(it.second) }.forEach {
+            _events.emit(TelnetEvent.Notice(CertificatePinning.fallbackWarning(it)))
+        }
+    }
+
+    private suspend fun reportConnectFailure(failures: List<Pair<ConnectionTarget, IOException>>) {
+        if (failures.isEmpty()) {
+            _events.emit(TelnetEvent.Error("Connection failed: there is no address to connect to."))
+        } else {
+            val changed = failures.firstNotNullOfOrNull { changedCertificate(it.second) }
+            val last = failures.last().second
+            if (changed != null) {
+                // A refused certificate is a security event: it stays fatal and visible even if
+                // another address also failed for an ordinary reason.
+                val others = failures.filter { changedCertificate(it.second) == null }
+                    .joinToString("") { (t, e) -> "\nAlso couldn't connect to ${t.label}: ${reasonFor(e)}." }
+                _events.emit(TelnetEvent.Error(CertificatePinning.mismatchMessage(changed) + others, last, fatal = true))
+            } else if (failures.size == 1) {
+                _events.emit(TelnetEvent.Error("Connection failed: ${last.message}", last))
+            } else {
+                val all = failures.joinToString(" ") { (t, e) -> "${t.label}: ${reasonFor(e)}." }
+                _events.emit(TelnetEvent.Error("Connection failed. $all", last))
             }
         }
+        _events.emit(TelnetEvent.StateChanged(ConnectionState.DISCONNECTED))
+        closeQuietly()
     }
 
     /**

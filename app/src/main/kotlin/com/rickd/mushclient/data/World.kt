@@ -28,4 +28,9 @@ data class World(
     // Per-world opt-in: implicit TLS on this world's port, with the server's certificate pinned
     // on first use (see telnet/CertificatePinning.kt).
     val useSsl: Boolean = false,
+    // Optional fallback address, tried only if the primary can't be reached. Used only when
+    // both [host2] and [port2] are set; has its own SSL flag.
+    val host2: String = "",
+    val port2: Int = 0,
+    val useSsl2: Boolean = false,
 )

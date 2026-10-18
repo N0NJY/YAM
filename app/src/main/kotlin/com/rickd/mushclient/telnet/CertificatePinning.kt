@@ -32,6 +32,14 @@ object CertificatePinning {
         MessageDigest.getInstance("SHA-256").digest(cert.encoded)
             .joinToString(":") { "%02X".format(it.toInt() and 0xFF) }
 
+    /** The shorter warning shown when a fallback address was used after [e] refused the primary. */
+    fun fallbackWarning(e: CertificateChangedException): String {
+        val where = key(e.host, e.port)
+        return "[SSL] Warning: the SSL certificate for $where has CHANGED and was refused " +
+            "(saved ${e.savedFingerprint}, now ${e.presentedFingerprint}). " +
+            "If you expected this, type /ssl-forget $where."
+    }
+
     /** What to show the player when [e] stopped a connection. */
     fun mismatchMessage(e: CertificateChangedException): String {
         val where = key(e.host, e.port)

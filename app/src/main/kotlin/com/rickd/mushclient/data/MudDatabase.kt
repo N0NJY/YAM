@@ -111,9 +111,17 @@ private val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+private val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN host2 TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN port2 INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN useSsl2 INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 @Database(
     entities = [World::class, MushCharacter::class, Trigger::class, SlashCommand::class, WorldGroup::class, SslPin::class],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class MudDatabase : RoomDatabase() {
@@ -133,7 +141,7 @@ abstract class MudDatabase : RoomDatabase() {
                     context.applicationContext,
                     MudDatabase::class.java,
                     "mud_client.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build().also { instance = it }
             }
     }
 }

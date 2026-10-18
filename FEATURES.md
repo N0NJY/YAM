@@ -39,6 +39,21 @@ nothing aspirational.
   apps, with a persistent notification showing connection status (and, with multiple tabs
   open, a per-tab status list).
 
+## Fallback address
+
+- A world can have a second **fallback host and port** (Properties → Connection), with its own
+  **Use SSL/TLS** switch. If the main address can't be reached, YAM tries the fallback and tells
+  you, in yellow, which address failed and why ("connection refused", "timed out", "host not
+  found"...) and which one it connected to.
+- It is tried **only after the main address fails, on every connect** — never "sticky". If the
+  main address has come back, the next connect or auto-reconnect uses it again.
+- Both host and port are needed; a half-filled fallback is rejected when you save.
+- It applies when you connect to the world's own address. If you edit the host or port in the
+  connection bar to dial somewhere else, the fallback isn't used.
+- A **changed SSL certificate** on the main address is still refused (and still reported, with
+  the `/ssl-forget` hint) even when the fallback then connects, and it stays a fatal error if
+  the fallback also fails — a security warning is never hidden behind an ordinary one.
+
 ## SSL/TLS
 
 - Turn on **Use SSL/TLS** in a world's Properties (Connection section) to encrypt its
@@ -64,7 +79,8 @@ nothing aspirational.
   - **Basic** — name, host, port and group (the same fields as Edit World, with validation).
   - **Connection** — **Telnet NOP keepalive**: send an invisible telnet "no operation" every 60
     seconds, for servers or routers that drop idle connections. Off by default, per world.
-  More sections (SSL, fallback address, proxy, SSH, auto-sends) arrive in later updates.
+    Also on this page: **Use SSL/TLS**, and the **Fallback address** (below). More sections
+    (proxy, SSH, auto-sends) arrive in later updates.
 - **TCP keepalive is always on** for every connection: a link that dies silently (a router
   reboot, a dropped Wi-Fi) is noticed in about a minute instead of hanging for hours, and
   auto-reconnect then takes over.

@@ -73,7 +73,7 @@ import com.rickd.mushclient.ui.common.toFontFamily
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import com.rickd.mushclient.telnet.ConnectionState
-import com.rickd.mushclient.ui.common.SettingsIconButton
+import com.rickd.mushclient.ui.common.AppMenuButton
 import com.rickd.mushclient.ui.theme.TerminalGreen
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -163,7 +163,7 @@ fun SessionScreen(
             }
             // Reachable from the terminal itself — e.g. checking a character's password or a
             // different world's host:port to hand to someone, then Back returns straight here.
-            SettingsIconButton(onClick = onOpenSettings)
+            AppMenuButton(onOpenSettings = onOpenSettings)
         }
 
         if (showDraft) {

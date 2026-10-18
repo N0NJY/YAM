@@ -102,6 +102,8 @@ nothing aspirational.
 
 ## Navigation
 
+- **Exit ("⋮" > Exit)** closes all connections, stops the background service and removes the
+  app from Recents; it confirms only when something is connected.
 - **Settings ("⋮") is reachable from every screen** — including a live terminal — not just
   the Address Book. Look up a character's password or copy a different world's host:port to
   send someone, then get back.

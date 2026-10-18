@@ -42,7 +42,7 @@ import com.rickd.mushclient.data.SlashCommand
 import com.rickd.mushclient.data.SlashCommandWithWorldName
 import com.rickd.mushclient.data.World
 import com.rickd.mushclient.ui.common.ConfirmDialog
-import com.rickd.mushclient.ui.common.SettingsIconButton
+import com.rickd.mushclient.ui.common.AppMenuButton
 
 @Composable
 fun SlashCommandListScreen(
@@ -66,7 +66,7 @@ fun SlashCommandListScreen(
                 TextButton(onClick = onBack) { Text("< Back") }
                 Text("Slash Commands", style = MaterialTheme.typography.titleLarge)
             }
-            SettingsIconButton(onClick = onOpenSettings)
+            AppMenuButton(onOpenSettings = onOpenSettings)
         }
 
         if (commands.isEmpty()) {

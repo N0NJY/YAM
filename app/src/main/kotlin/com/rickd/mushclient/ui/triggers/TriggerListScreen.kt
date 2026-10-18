@@ -50,7 +50,7 @@ import com.rickd.mushclient.data.PatternMatchType
 import com.rickd.mushclient.data.TriggerWithWorldName
 import com.rickd.mushclient.data.World
 import com.rickd.mushclient.ui.common.ConfirmDialog
-import com.rickd.mushclient.ui.common.SettingsIconButton
+import com.rickd.mushclient.ui.common.AppMenuButton
 
 @Composable
 fun TriggerListScreen(
@@ -74,7 +74,7 @@ fun TriggerListScreen(
                 TextButton(onClick = onBack) { Text("< Back") }
                 Text("Triggers", style = MaterialTheme.typography.titleLarge)
             }
-            SettingsIconButton(onClick = onOpenSettings)
+            AppMenuButton(onOpenSettings = onOpenSettings)
         }
 
         if (triggers.isEmpty()) {

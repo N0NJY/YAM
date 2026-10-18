@@ -48,7 +48,7 @@ connection state.
   afterward — via the system Back button, the Address Book's own "< Back" (shown whenever
   there's somewhere to return to), or by reopening the same world — always lands you on the
   exact same tabs and scrollback, never a duplicate connection.
-- The **⋮** in the top corner reaches Settings directly from the terminal — no need to leave
+- The **⋮** in the top corner has **Settings** and **Exit**, even from the terminal — no need to leave
   your session just to check a character's password or grab a different world's host:port to
   send someone.
 
@@ -164,6 +164,9 @@ first match wins, but a trigger can be marked to let later ones also check the s
 
 Reach Settings via the ⋮ menu — it's in the same top corner on every screen, including a live
 terminal, so you're never more than one tap away from it.
+
+**Exit** (also in ⋮) closes every connection, stops the background service and removes YAM from
+Recents. If anything is connected it asks first; with nothing connected it just quits.
 
 - **Theme** — System default, Light, or Dark.
 - **Auto-reconnect** — automatically redial after a dropped connection. Doesn't apply when

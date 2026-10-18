@@ -30,7 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.rickd.mushclient.ui.common.SettingsIconButton
+import com.rickd.mushclient.ui.common.AppMenuButton
 
 @Composable
 fun HelpScreen(
@@ -52,7 +52,7 @@ fun HelpScreen(
                 TextButton(onClick = onBack) { Text("< Back") }
                 Text("Help", style = MaterialTheme.typography.titleLarge)
             }
-            SettingsIconButton(onClick = onOpenSettings)
+            AppMenuButton(onOpenSettings = onOpenSettings)
         }
 
         // Jump to any section directly, rather than only being able to page through in order.

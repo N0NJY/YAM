@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rickd.mushclient.data.MushCharacter
 import com.rickd.mushclient.ui.common.ConfirmDialog
-import com.rickd.mushclient.ui.common.SettingsIconButton
+import com.rickd.mushclient.ui.common.AppMenuButton
 
 @Composable
 fun CharacterListScreen(
@@ -60,7 +60,7 @@ fun CharacterListScreen(
                 TextButton(onClick = onBack) { Text("< Back") }
                 Text(world?.name ?: "Characters", style = MaterialTheme.typography.titleLarge)
             }
-            SettingsIconButton(onClick = onOpenSettings)
+            AppMenuButton(onOpenSettings = onOpenSettings)
         }
         world?.let {
             Text(

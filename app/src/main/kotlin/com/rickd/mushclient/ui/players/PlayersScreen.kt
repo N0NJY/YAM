@@ -36,7 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rickd.mushclient.data.CharacterWithWorld
 import com.rickd.mushclient.data.World
 import com.rickd.mushclient.ui.common.ConfirmDialog
-import com.rickd.mushclient.ui.common.SettingsIconButton
+import com.rickd.mushclient.ui.common.AppMenuButton
 
 @Composable
 fun PlayersScreen(
@@ -61,7 +61,7 @@ fun PlayersScreen(
                 TextButton(onClick = onBack) { Text("< Back") }
                 Text("Characters", style = MaterialTheme.typography.titleLarge)
             }
-            SettingsIconButton(onClick = onOpenSettings)
+            AppMenuButton(onOpenSettings = onOpenSettings)
         }
 
         if (players.isEmpty()) {

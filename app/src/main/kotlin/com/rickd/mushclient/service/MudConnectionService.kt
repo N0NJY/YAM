@@ -116,6 +116,11 @@ class MudConnectionService : LifecycleService() {
         createNotificationChannel()
     }
 
+    override fun onDestroy() {
+        _liveConnections.value = 0
+        super.onDestroy()
+    }
+
     override fun onBind(intent: Intent): IBinder {
         super.onBind(intent)
         return binder
@@ -123,6 +128,10 @@ class MudConnectionService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        if (intent?.action == ACTION_EXIT) {
+            exitAll()
+            return START_NOT_STICKY
+        }
         val host = intent?.getStringExtra(EXTRA_HOST)
         val port = intent?.getIntExtra(EXTRA_PORT, -1) ?: -1
         val worldId = intent?.getLongExtra(EXTRA_WORLD_ID, -1L)?.takeIf { it > 0 }
@@ -218,20 +227,33 @@ class MudConnectionService : LifecycleService() {
         maybeStopIfIdle()
     }
 
-    private fun maybeStopIfIdle() {
-        val anyLive = sessions.values.any { session ->
-            when (session.uiState.value.connectionState) {
-                ConnectionState.CONNECTED, ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> true
-                ConnectionState.DISCONNECTED -> false
-            }
+    /** Closes every connection and tab and stops the service — the "Exit" menu item. */
+    private fun exitAll() {
+        sessions.values.forEach { it.dispose() }
+        sessions.clear()
+        _tabs.value = emptyList()
+        _activeConnectionId.value = null
+        _liveConnections.value = 0
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
+    private fun liveConnectionCount(): Int = sessions.values.count { session ->
+        when (session.uiState.value.connectionState) {
+            ConnectionState.CONNECTED, ConnectionState.CONNECTING, ConnectionState.RECONNECTING -> true
+            ConnectionState.DISCONNECTED -> false
         }
-        if (!anyLive) {
+    }
+
+    private fun maybeStopIfIdle() {
+        if (liveConnectionCount() == 0) {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
     }
 
     private fun refreshNotification() {
+        _liveConnections.value = liveConnectionCount()
         getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildAggregateNotification())
     }
 
@@ -674,12 +696,18 @@ class MudConnectionService : LifecycleService() {
     }
 
     companion object {
+        private val _liveConnections = MutableStateFlow(0)
+
+        /** How many connections are open or connecting right now; lets any screen ask before Exit. */
+        val liveConnections: StateFlow<Int> = _liveConnections
+
         private const val CHANNEL_ID = "mud_session"
         private const val NOTIFICATION_ID = 1
         private const val MAX_HISTORY = 20
         private const val NOT_CONNECTED_NOTE =
             "Not connected, so that wasn't sent. Tap Connect, or use /reconnect or /connect."
         private const val RECONNECT_DELAY_MS = 30_000L
+        const val ACTION_EXIT = "com.rickd.mushclient.action.EXIT"
         const val EXTRA_HOST = "host"
         const val EXTRA_PORT = "port"
         const val EXTRA_WORLD_ID = "worldId"

@@ -51,7 +51,7 @@ import com.rickd.mushclient.data.World
 import com.rickd.mushclient.data.WorldGroup
 import com.rickd.mushclient.data.WorldWithLastCharacter
 import com.rickd.mushclient.ui.common.ConfirmDialog
-import com.rickd.mushclient.ui.common.SettingsIconButton
+import com.rickd.mushclient.ui.common.AppMenuButton
 
 @Composable
 fun WorldAddressBookScreen(
@@ -91,7 +91,7 @@ fun WorldAddressBookScreen(
                 onBack?.let { TextButton(onClick = it) { Text("< Back") } }
                 Text(text = "Address Book", style = MaterialTheme.typography.titleLarge)
             }
-            SettingsIconButton(onClick = onOpenSettings)
+            AppMenuButton(onOpenSettings = onOpenSettings)
         }
 
         // Only shown when a session is actually live — reassures that picking a world here

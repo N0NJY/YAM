@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rickd.mushclient.data.World
 import com.rickd.mushclient.data.WorldGroup
-import com.rickd.mushclient.ui.common.SettingsIconButton
+import com.rickd.mushclient.ui.common.AppMenuButton
 
 /** The categories on the left, like MushTato's World Properties; later batches add more. */
 private enum class PropertiesSection(val label: String) {
@@ -109,7 +109,7 @@ private fun PropertiesForm(
                 TextButton(onClick = onCancel) { Text("< Back") }
                 Text("Properties: ${world.name}", style = MaterialTheme.typography.titleLarge)
             }
-            SettingsIconButton(onClick = onOpenSettings)
+            AppMenuButton(onOpenSettings = onOpenSettings)
         }
 
         Row(modifier = Modifier.weight(1f).fillMaxWidth()) {

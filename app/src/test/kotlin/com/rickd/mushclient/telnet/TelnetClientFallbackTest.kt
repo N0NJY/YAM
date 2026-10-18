@@ -150,12 +150,12 @@ class TelnetClientFallbackTest {
         assertTrue(err.message, err.message.contains("127.0.0.1:$a") && err.message.contains("127.0.0.1:$b"))
     }
 
-    @Test fun aSingleAddressFailureKeepsTheFamiliarMessage() {
+    @Test fun aSingleAddressFailureIsInPlainWordsNotJavasRawText() {
         val dead = deadPort()
         val h = Harness()
         val run = h.connect(listOf(target(dead)))
         h.close()
-        assertTrue(run.errors.single().message.startsWith("Connection failed: "))
+        assertEquals("Connection failed: connection refused.", run.errors.single().message)
     }
 
     @Test fun anEmptyTargetListFailsClearly() {

@@ -26,6 +26,7 @@ import com.rickd.mushclient.data.SslPinDao
 import com.rickd.mushclient.telnet.CertificatePinning
 import com.rickd.mushclient.telnet.ConnectionTarget
 import com.rickd.mushclient.telnet.connectionTargets
+import com.rickd.mushclient.telnet.socks4ProxyOrNull
 import com.rickd.mushclient.data.SlashCommand
 import com.rickd.mushclient.data.SlashCommandDao
 import com.rickd.mushclient.data.Trigger
@@ -377,7 +378,11 @@ class MudConnectionService : LifecycleService() {
                 } else {
                     listOf(primary)
                 }
-                telnetClient.connect(targets, nopKeepalive = world?.nopKeepalive ?: false)
+                telnetClient.connect(
+                    targets,
+                    nopKeepalive = world?.nopKeepalive ?: false,
+                    proxy = world?.let { socks4ProxyOrNull(it.proxyHost, it.proxyPort) },
+                )
             }
         }
 

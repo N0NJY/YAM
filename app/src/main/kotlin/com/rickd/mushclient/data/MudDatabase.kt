@@ -119,9 +119,16 @@ private val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
+private val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN proxyHost TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE connection_profiles ADD COLUMN proxyPort INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 @Database(
     entities = [World::class, MushCharacter::class, Trigger::class, SlashCommand::class, WorldGroup::class, SslPin::class],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 abstract class MudDatabase : RoomDatabase() {
@@ -141,7 +148,7 @@ abstract class MudDatabase : RoomDatabase() {
                     context.applicationContext,
                     MudDatabase::class.java,
                     "mud_client.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).build().also { instance = it }
             }
     }
 }

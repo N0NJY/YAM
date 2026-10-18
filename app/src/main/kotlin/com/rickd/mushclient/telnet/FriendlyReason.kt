@@ -14,6 +14,8 @@ import java.net.UnknownHostException
 fun friendlyReason(e: IOException): String {
     val message = e.message.orEmpty()
     return when {
+        // Already phrased for the player (and mentions the proxy), so it must not be re-labelled.
+        e is ProxyException -> message
         e is UnknownHostException -> "host not found"
         e is SocketTimeoutException || message.contains("timed out", ignoreCase = true) -> "timed out"
         e is NoRouteToHostException || message.contains("EHOSTUNREACH") || message.contains("No route to host", ignoreCase = true) -> "no route to host"

@@ -61,15 +61,17 @@ class TelnetClient(
      *
      * [nopKeepalive] (a per-world opt-in) also sends an `IAC NOP` heartbeat every [nopIntervalMs],
      * for servers or routers that drop idle connections. TCP keepalive is always on.
+     *
+     * With a [proxy], every target is reached through it (the proxy resolves hostnames itself).
      */
-    suspend fun connect(targets: List<ConnectionTarget>, nopKeepalive: Boolean = false) {
+    suspend fun connect(targets: List<ConnectionTarget>, nopKeepalive: Boolean = false, proxy: Socks4Proxy? = null) {
         withContext(Dispatchers.IO) {
             _events.emit(TelnetEvent.StateChanged(ConnectionState.CONNECTING))
             negotiator = TelnetNegotiator()
             val failures = mutableListOf<Pair<ConnectionTarget, IOException>>()
             for (target in targets) {
                 val active = try {
-                    openSocket(target)
+                    openSocket(target, proxy)
                 } catch (e: IOException) {
                     failures += target to e
                     continue
@@ -87,11 +89,22 @@ class TelnetClient(
     }
 
     /** Opens one target; on any failure nothing is left open. */
-    private fun openSocket(target: ConnectionTarget): Socket {
+    private fun openSocket(target: ConnectionTarget, proxy: Socks4Proxy?): Socket {
         val raw = Socket()
         try {
-            raw.connect(InetSocketAddress(target.host, target.port), CONNECT_TIMEOUT_MS)
+            if (proxy == null) {
+                raw.connect(InetSocketAddress(target.host, target.port), CONNECT_TIMEOUT_MS)
+            } else {
+                // The hop to the proxy is plain TCP, never TLS; TLS (if wanted) goes on top of the
+                // relayed connection afterwards, so the certificate checked is the *server's*.
+                try {
+                    raw.connect(InetSocketAddress(proxy.host, proxy.port), CONNECT_TIMEOUT_MS)
+                } catch (e: IOException) {
+                    throw ProxyException("Couldn't reach the SOCKS4 proxy ${proxy.label} (${friendlyReason(e)}).")
+                }
+            }
             if (keepAliveTuner != null) TcpKeepAlive.enable(raw, keepAliveTuner) else TcpKeepAlive.enable(raw)
+            if (proxy != null) Socks4.handshake(raw, target.host, target.port)
             return if (target.useSsl) wrapInTls(raw, target.host, target.port) else raw
         } catch (e: Throwable) {
             runCatching { raw.close() }
@@ -128,7 +141,7 @@ class TelnetClient(
                     .joinToString("") { (t, e) -> "\nAlso couldn't connect to ${t.label}: ${reasonFor(e)}." }
                 _events.emit(TelnetEvent.Error(CertificatePinning.mismatchMessage(changed) + others, last, fatal = true))
             } else if (failures.size == 1) {
-                _events.emit(TelnetEvent.Error("Connection failed: ${last.message}", last))
+                _events.emit(TelnetEvent.Error("Connection failed: ${friendlyReason(last)}.", last))
             } else {
                 val all = failures.joinToString(" ") { (t, e) -> "${t.label}: ${reasonFor(e)}." }
                 _events.emit(TelnetEvent.Error("Connection failed. $all", last))

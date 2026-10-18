@@ -39,6 +39,21 @@ nothing aspirational.
   apps, with a persistent notification showing connection status (and, with multiple tabs
   open, a per-tab status list).
 
+## SOCKS4 proxy
+
+- A world can relay all its connections through a **SOCKS4 or SOCKS4a proxy** (Properties →
+  Connection → Proxy): a proxy host and port, both required. Handy for Tor, an SSH-tunnel
+  proxy, or reaching a server from a restricted network.
+- **The proxy looks up host names itself** (SOCKS4a): YAM sends the name, not an address, so a
+  host that only the proxy can resolve — or an address that means something different from the
+  proxy's side — works. A literal IPv4 address is sent as plain SOCKS4. (SOCKS4 can't carry an
+  IPv6 address; YAM says so.)
+- **SSL still runs end to end** with the server through the proxy, and the saved certificate is
+  the server's, never the proxy's.
+- The proxy applies to the fallback address as well as the main one. Failures say whose fault
+  they are: "Couldn't reach the SOCKS4 proxy ...", "The proxy refused the request for ...".
+- No user name is offered to the proxy.
+
 ## Fallback address
 
 - A world can have a second **fallback host and port** (Properties → Connection), with its own
@@ -79,8 +94,8 @@ nothing aspirational.
   - **Basic** — name, host, port and group (the same fields as Edit World, with validation).
   - **Connection** — **Telnet NOP keepalive**: send an invisible telnet "no operation" every 60
     seconds, for servers or routers that drop idle connections. Off by default, per world.
-    Also on this page: **Use SSL/TLS**, and the **Fallback address** (below). More sections
-    (proxy, SSH, auto-sends) arrive in later updates.
+    Also on this page: **Use SSL/TLS**, the **Fallback address** and the **Proxy** (below).
+    More sections (SSH, auto-sends) arrive in later updates.
 - **TCP keepalive is always on** for every connection: a link that dies silently (a router
   reboot, a dropped Wi-Fi) is noticed in about a minute instead of hanging for hours, and
   auto-reconnect then takes over.

@@ -94,8 +94,10 @@ private fun PropertiesForm(
     var host2 by remember(world.id) { mutableStateOf(world.host2) }
     var port2 by remember(world.id) { mutableStateOf(if (world.port2 > 0) world.port2.toString() else "") }
     var useSsl2 by remember(world.id) { mutableStateOf(world.useSsl2) }
+    var proxyHost by remember(world.id) { mutableStateOf(world.proxyHost) }
+    var proxyPort by remember(world.id) { mutableStateOf(if (world.proxyPort > 0) world.proxyPort.toString() else "") }
 
-    val error = validateWorldBasics(name, host, port) ?: validateFallback(host2, port2)
+    val error = validateWorldBasics(name, host, port) ?: validateFallback(host2, port2) ?: validateProxy(proxyHost, proxyPort)
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
@@ -222,6 +224,29 @@ private fun PropertiesForm(
                             Text("Use SSL/TLS for the fallback")
                             Switch(checked = useSsl2, onCheckedChange = { useSsl2 = it })
                         }
+                        Text("Proxy (SOCKS4)", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = "Optional. Relay this world's connections through a SOCKS4 or SOCKS4a proxy " +
+                                "(for example a Tor or SSH-tunnel proxy). The proxy looks up host names itself, " +
+                                "and SSL, if used, still runs end to end with the server. Needs both a host and a port.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        OutlinedTextField(
+                            value = proxyHost,
+                            onValueChange = { proxyHost = it },
+                            label = { Text("Proxy host") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = proxyPort,
+                            onValueChange = { proxyPort = it },
+                            label = { Text("Proxy port") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                         Text(
                             text = "YAM also always uses TCP keepalive, so a connection that dies " +
                                 "silently is noticed within about a minute.",
@@ -248,6 +273,8 @@ private fun PropertiesForm(
                             host2 = host2.trim(),
                             port2 = port2.trim().toIntOrNull() ?: 0,
                             useSsl2 = useSsl2,
+                            proxyHost = proxyHost.trim(),
+                            proxyPort = proxyPort.trim().toIntOrNull() ?: 0,
                         ),
                     )
                 },

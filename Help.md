@@ -115,6 +115,13 @@ the input line. A sample line shows the result as you move the size slider, and 
 update immediately. Keep the terminal on **Monospace** unless you don't mind banners, tables
 and ASCII art losing their alignment.
 
+## Proxy (SOCKS4)
+
+In **Properties → Connection → Proxy**, enter a SOCKS4/SOCKS4a proxy's host and port (both, or
+neither) and every connection for that world is relayed through it. The proxy looks up host
+names itself, and SSL, if you use it, still runs end to end with the server. If the proxy can't
+be reached or refuses the request, the message says so.
+
 ## Fallback address
 
 In **Properties → Connection**, a world can have a fallback host and port. If the main address

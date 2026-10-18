@@ -33,4 +33,8 @@ data class World(
     val host2: String = "",
     val port2: Int = 0,
     val useSsl2: Boolean = false,
+    // Optional SOCKS4/4a proxy every connection for this world is relayed through. Used only when
+    // both [proxyHost] and [proxyPort] are set.
+    val proxyHost: String = "",
+    val proxyPort: Int = 0,
 )

@@ -5,6 +5,12 @@ data class ConnectionTarget(val host: String, val port: Int, val useSsl: Boolean
     val label: String get() = "$host:$port"
 }
 
+/** The proxy to use, or null if none is configured; both host and a valid port are required. */
+fun socks4ProxyOrNull(host: String, port: Int): Socks4Proxy? {
+    val trimmed = host.trim()
+    return if (trimmed.isNotEmpty() && port in 1..65535) Socks4Proxy(trimmed, port) else null
+}
+
 /**
  * The addresses to try, in order: the primary, then the fallback if one is configured. The
  * fallback counts only when both its host and a valid port are set — a half-filled one is
